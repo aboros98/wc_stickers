@@ -31,7 +31,7 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
 
   const isBadge = item.country_code !== 'FWC' && item.slot_no === 1
   const accent = teamAccent(item.country_code)
-  const teamBg = `linear-gradient(155deg, color-mix(in srgb, ${accent} 72%, #0A0A0C), color-mix(in srgb, ${accent} 34%, #0A0A0C))`
+  const teamBg = `linear-gradient(160deg, color-mix(in srgb, ${accent} 46%, #0A0A0C), color-mix(in srgb, ${accent} 15%, #0A0A0C))`
   const big =
     item.country_code === 'FWC'
       ? item.sticker_code.replace(/^FWC/, '') || item.sticker_code
@@ -71,8 +71,12 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
       longPressed.current = false
       return
     }
-    haptic('selection')
-    onSetCount(item.count === 0 ? 1 : item.count + 1)
+    if (item.count === 0) {
+      haptic('selection')
+      onSetCount(1) // tap empty → collected
+    } else {
+      onLongPress(item) // tap owned → open editor (add spares / reset)
+    }
   }
   const openSheet = (e: { preventDefault: () => void }) => {
     e.preventDefault()
@@ -102,7 +106,7 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
         {isBadge ? (
           <Flag code={item.country_code} className="h-8 w-12 opacity-45 grayscale" />
         ) : (
-          <span className="font-display text-2xl font-extrabold leading-none tabnum text-fg-muted/55">
+          <span className="font-display text-[26px] font-black leading-none tabnum text-fg-muted/60">
             {big}
           </span>
         )}
@@ -131,7 +135,7 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
       {...handlers}
     >
       <span
-        className="pointer-events-none absolute inset-0 flex items-center justify-center font-display text-[58px] font-black leading-none text-white/10"
+        className="pointer-events-none absolute inset-0 flex items-center justify-center font-display text-[58px] font-black leading-none text-white/[0.06]"
         aria-hidden="true"
       >
         26
@@ -154,7 +158,8 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
         />
       ) : (
         <span
-          className={`relative font-display text-2xl font-extrabold leading-none tabnum ${isFoil ? 'text-black/85' : 'text-white'}`}
+          className={`relative font-display text-[28px] font-black leading-none tabnum ${isFoil ? 'text-black/90' : 'text-white'}`}
+          style={isFoil ? undefined : { textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
         >
           {big}
         </span>

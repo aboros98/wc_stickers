@@ -21,7 +21,7 @@ export function TabBar() {
               end={end}
               className={({ isActive }) =>
                 `flex h-12 w-[58px] flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-semibold transition-colors ${
-                  isActive ? 'bg-primary/15 text-primary' : 'text-fg-muted'
+                  isActive ? 'bg-turquoise/15 text-turquoise' : 'text-fg-muted'
                 }`
               }
             >

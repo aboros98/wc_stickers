@@ -11,6 +11,7 @@ import { EmptyState } from '../components/EmptyState'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { ConfettiBurst } from '../components/ConfettiBurst'
 import { useAuth } from '../auth/AuthProvider'
+import wc26 from '../assets/wc2026.webp'
 import type { CollectionItem } from '../lib/types'
 
 type Filter = 'all' | 'missing' | 'spares' | 'complete'
@@ -113,6 +114,12 @@ export function CollectionScreen() {
       {/* WC2026 hero */}
       <section className="anim-fade-up relative mb-3 overflow-hidden rounded-[20px] border border-border bg-gradient-to-br from-surface-2 to-surface p-4">
         <div className="anim-float pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-gold/20 blur-2xl" />
+        <img
+          src={wc26}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-2 -top-3 h-24 w-auto opacity-[0.12]"
+        />
         <div className="relative flex items-start justify-between">
           <p className="font-display text-[10px] font-bold uppercase tracking-[0.22em] text-gold">
             Cupa Mondială 2026
@@ -207,10 +214,9 @@ export function CollectionScreen() {
       {!seenIntro && (
         <div className="mb-3 flex items-start gap-3 rounded-[12px] border border-border bg-surface px-3 py-2.5">
           <p className="flex-1 text-xs leading-relaxed text-fg-muted">
-            <span className="font-semibold text-fg">Atinge</span> un slot ca să-l
-            marchezi „Am”. <span className="font-semibold text-fg">Atinge din
-            nou</span> pentru o dublură. <span className="font-semibold text-fg">
-            Ține apăsat</span> ca să editezi sau resetezi.
+            <span className="font-semibold text-fg">Atinge</span> un slot gol ca
+            să-l colectezi. <span className="font-semibold text-fg">Atinge unul
+            colectat</span> ca să adaugi dubluri sau să resetezi.
           </p>
           <button
             type="button"
