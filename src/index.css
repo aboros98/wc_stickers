@@ -1,0 +1,187 @@
+@import 'tailwindcss';
+
+/* ---- Official FIFA World Cup 2026 palette (green/blue/red/gold on black) --- */
+@theme {
+  /* Brand — collection status */
+  --color-primary: #3cac3b; /* WC26 green — HAVE / collected */
+  --color-primary-strong: #2e8b2d;
+  --color-primary-soft: #5bc95a;
+
+  --color-gold: #e1b530; /* trophy gold — CTA / foil / celebration */
+  --color-gold-bright: #f4ce52;
+  --color-gold-deep: #b8860b;
+
+  --color-sky: #a9d4f0; /* sticker-fill echo */
+  --color-accent: #2a398d; /* WC26 blue */
+  --color-accent-bright: #3b5bdb;
+
+  /* Host / national triad — per-team theming */
+  --color-team-red: #e61d25;
+  --color-team-green: #3cac3b;
+  --color-team-blue: #2a398d;
+
+  /* State */
+  --color-have: #3cac3b;
+  --color-missing: #6b7280;
+  --color-duplicate: #2f6fed; /* WC26 blue — spares (distinct from green/gold/red) */
+  --color-danger: #e61d25; /* WC26 red */
+
+  /* Surfaces — near-black official mono base */
+  --color-background: #0a0a0c;
+  --color-surface: #15161a;
+  --color-surface-2: #1f2127;
+  --color-border: #2a2d34;
+  --color-fg: #f4f5f7;
+  --color-fg-muted: #9aa0a8;
+
+  /* Foil — trophy gold */
+  --color-foil-from: #e1b530;
+  --color-foil-via: #f7e7a6;
+  --color-foil-to: #b8860b;
+
+  --font-sans: 'Noto Sans', system-ui, sans-serif;
+  --font-display: 'Archivo', 'Noto Sans', sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+}
+
+/* Light theme — manual .light toggle on <html> */
+.light {
+  --color-background: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef1f5;
+  --color-border: #e1e5ea;
+  --color-fg: #14161a;
+  --color-fg-muted: #5b616b;
+  --color-missing: #c2c7cf;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--color-background);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+    min-height: 100dvh;
+  }
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button {
+    font: inherit;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  .tabnum {
+    font-variant-numeric: tabular-nums;
+  }
+  .sticker-flip {
+    animation: flip-in 220ms ease-out;
+  }
+  .foil-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  .foil-sheen::after {
+    content: '';
+    position: absolute;
+    inset: -50%;
+    background: linear-gradient(
+      115deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.45) 50%,
+      transparent 70%
+    );
+    transform: translateX(-100%);
+    animation: sheen 3s ease-in-out infinite;
+  }
+  .shimmer {
+    background: linear-gradient(
+      100deg,
+      var(--color-surface) 30%,
+      var(--color-surface-2) 50%,
+      var(--color-surface) 70%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes flip-in {
+  from {
+    transform: rotateY(90deg);
+    opacity: 0.4;
+  }
+  to {
+    transform: rotateY(0);
+    opacity: 1;
+  }
+}
+@keyframes sheen {
+  0% {
+    transform: translateX(-100%);
+  }
+  60%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes confetti {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) rotate(var(--rot));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticker-flip,
+  .foil-sheen::after,
+  .shimmer {
+    animation: none !important;
+  }
+}

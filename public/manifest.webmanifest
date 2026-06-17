@@ -1,0 +1,15 @@
+{
+  "name": "Album Abțibilduri CM 2026",
+  "short_name": "CM26",
+  "description": "Urmărește albumul tău Panini Cupa Mondială 2026 — lipsuri, dubluri și schimburi.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0A0C",
+  "theme_color": "#0A0A0C",
+  "icons": [
+    { "src": "/icon-512.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-512.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
