@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useCallback, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
-import { getHidden } from '../lib/friends'
+import { getHidden, unhideFriend } from '../lib/friends'
 import type { UserStickerRow } from '../lib/types'
 
 export interface FriendProfile {
@@ -128,4 +129,41 @@ export async function removeFriendship(friendId: string) {
     .delete()
     .eq('user_id', uid)
     .eq('friend_id', friendId)
+}
+
+/**
+ * Shared "add a friend" flow: accepts a raw code or a share link/hash
+ * (e.g. "...#add=74E9D0D4"), links mutually, and reports a status message.
+ * Returns the user's own profile too, for showing their code/QR.
+ */
+export function useAddFriend() {
+  const qc = useQueryClient()
+  const myProfile = useMyProfile()
+  const myCode = myProfile.data?.friend_code ?? ''
+  const [msg, setMsg] = useState<string | null>(null)
+
+  const doAdd = useCallback(
+    async (raw: string): Promise<boolean> => {
+      const m = raw.match(/add=([A-Za-z0-9]+)/)
+      const code = (m ? m[1] : raw).trim().toUpperCase()
+      if (!code) return false
+      if (myCode && code === myCode) {
+        setMsg('Acesta e codul tău.')
+        return false
+      }
+      const p = await fetchProfileByCode(code)
+      if (!p) {
+        setMsg('Cod negăsit.')
+        return false
+      }
+      unhideFriend(p.id)
+      await addFriendship(p.id)
+      qc.invalidateQueries({ queryKey: ['friends'] })
+      setMsg(`${p.name} adăugat!`)
+      return true
+    },
+    [myCode, qc],
+  )
+
+  return { doAdd, msg, setMsg, myProfile }
 }

@@ -11,6 +11,7 @@ import { useAuth } from './auth/AuthProvider'
 import { AppShell } from './components/AppShell'
 import { CollectionScreen } from './pages/CollectionScreen'
 import { FriendsScreen } from './pages/FriendsScreen'
+import { AddFriendScreen } from './pages/AddFriendScreen'
 import { LoginScreen } from './pages/LoginScreen'
 
 /** Reset scroll to the top whenever the route changes. */
@@ -44,6 +45,7 @@ export function App() {
           <Routes>
             <Route path="/" element={<CollectionScreen />} />
             <Route path="/friends" element={<FriendsScreen />} />
+            <Route path="/friends/add" element={<AddFriendScreen />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AppShell>

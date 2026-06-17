@@ -13,7 +13,6 @@ import { ConfettiBurst } from '../components/ConfettiBurst'
 import { ImportSheet } from '../components/ImportSheet'
 import { useAuth } from '../auth/AuthProvider'
 import wc26 from '../assets/wc2026.webp'
-import type { CollectionItem } from '../lib/types'
 
 type Filter = 'all' | 'missing' | 'spares' | 'complete'
 
@@ -25,7 +24,7 @@ export function CollectionScreen() {
   const { signOut } = useAuth()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
-  const [actionItem, setActionItem] = useState<CollectionItem | null>(null)
+  const [actionId, setActionId] = useState<number | null>(null)
   const [quickAdd, setQuickAdd] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [seenIntro, setSeenIntro] = useState(() => {
@@ -68,6 +67,11 @@ export function CollectionScreen() {
 
   const setCountFn = (stickerId: number, count: number) =>
     setCount.mutate({ stickerId, count })
+
+  // Re-derive the edited sticker from the live list so the action sheet's count
+  // and its steppers reflect each change instead of a stale snapshot.
+  const actionItem =
+    actionId == null ? null : (items.find((i) => i.id === actionId) ?? null)
 
   const firstRun = progress.have === 0 && filter === 'all' && !query.trim()
   const autoOpen = filter !== 'all' || query.trim().length > 0
@@ -251,7 +255,7 @@ export function CollectionScreen() {
               section={s}
               defaultOpen={autoOpen || (firstRun && idx === 0)}
               onSetCount={setCountFn}
-              onLongPress={setActionItem}
+              onLongPress={(it) => setActionId(it.id)}
             />
           ))}
         </div>
@@ -259,7 +263,7 @@ export function CollectionScreen() {
 
       <StickerActionSheet
         item={actionItem}
-        onClose={() => setActionItem(null)}
+        onClose={() => setActionId(null)}
         onSetCount={setCountFn}
       />
       <QuickAddSheet
