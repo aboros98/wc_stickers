@@ -257,15 +257,6 @@ export function CollectionScreen() {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => setQuickAdd(true)}
-        aria-label="Adăugare rapidă"
-        className="anim-float fixed bottom-24 right-4 z-30 grid h-14 w-14 place-items-center rounded-full bg-gold text-black shadow-[0_10px_30px_-6px_rgba(225,181,48,0.6)] active:scale-95"
-      >
-        <Plus size={26} />
-      </button>
-
       <StickerActionSheet
         item={actionItem}
         onClose={() => setActionItem(null)}
