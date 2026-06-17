@@ -1,10 +1,9 @@
-import { Minus, Plus, RotateCcw } from 'lucide-react'
+import { Minus, Plus } from 'lucide-react'
 import { Sheet } from './Sheet'
 import { Flag } from './Flag'
 import type { CollectionItem } from '../lib/types'
 import { statusOf } from '../lib/types'
 import { haptic } from '../lib/haptics'
-import type { ReactNode } from 'react'
 
 interface Props {
   item: CollectionItem | null
@@ -12,33 +11,12 @@ interface Props {
   onSetCount: (stickerId: number, count: number) => void
 }
 
-function SegBtn({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-[12px] py-2.5 text-sm font-bold transition-colors ${
-        active ? 'bg-primary text-black' : 'bg-surface-2 text-fg-muted'
-      }`}
-    >
-      {children}
-    </button>
-  )
-}
-
-/** Editor for one sticker: state + spare quantity, with flag + context. */
+/** Editor for one sticker: state (sliding segmented control) + spare quantity. */
 export function StickerActionSheet({ item, onClose, onSetCount }: Props) {
   const count = item?.count ?? 0
   const status = item ? statusOf(item.count) : 'missing'
   const spare = count > 1 ? count - 1 : 0
+  const idx = status === 'missing' ? 0 : status === 'have' ? 1 : 2
 
   const sub = !item
     ? ''
@@ -73,19 +51,36 @@ export function StickerActionSheet({ item, onClose, onSetCount }: Props) {
             </div>
           </div>
 
-          <div className="mb-4 grid grid-cols-3 gap-2">
-            <SegBtn active={status === 'missing'} onClick={() => set(0)}>
+          <div className="relative mb-4 grid grid-cols-3 rounded-[12px] bg-surface-2 p-1 text-sm font-bold">
+            <span
+              aria-hidden="true"
+              className="absolute inset-y-1 left-1 rounded-[9px] bg-primary transition-transform duration-200 ease-out"
+              style={{
+                width: 'calc((100% - 0.5rem) / 3)',
+                transform: `translateX(${idx * 100}%)`,
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => set(0)}
+              className={`relative z-10 py-2.5 transition-colors ${idx === 0 ? 'text-black' : 'text-fg-muted'}`}
+            >
               Lipsă
-            </SegBtn>
-            <SegBtn active={status === 'have'} onClick={() => set(1)}>
+            </button>
+            <button
+              type="button"
+              onClick={() => set(1)}
+              className={`relative z-10 py-2.5 transition-colors ${idx === 1 ? 'text-black' : 'text-fg-muted'}`}
+            >
               Am
-            </SegBtn>
-            <SegBtn
-              active={status === 'duplicate'}
+            </button>
+            <button
+              type="button"
               onClick={() => set(Math.max(2, count))}
+              className={`relative z-10 py-2.5 transition-colors ${idx === 2 ? 'text-black' : 'text-fg-muted'}`}
             >
               Dublură
-            </SegBtn>
+            </button>
           </div>
 
           <div className="flex items-center justify-between rounded-[12px] bg-surface-2 p-3">
@@ -96,7 +91,7 @@ export function StickerActionSheet({ item, onClose, onSetCount }: Props) {
                 aria-label="O dublură mai puțin"
                 onClick={() => set(count - 1)}
                 disabled={count <= 1}
-                className="grid h-9 w-9 place-items-center rounded-full bg-surface disabled:opacity-40"
+                className="grid h-9 w-9 place-items-center rounded-full bg-surface transition active:scale-90 disabled:opacity-40"
               >
                 <Minus size={16} />
               </button>
@@ -107,20 +102,12 @@ export function StickerActionSheet({ item, onClose, onSetCount }: Props) {
                 type="button"
                 aria-label="O dublură în plus"
                 onClick={() => set(count < 1 ? 2 : count + 1)}
-                className="grid h-9 w-9 place-items-center rounded-full bg-primary text-black"
+                className="grid h-9 w-9 place-items-center rounded-full bg-primary text-black transition active:scale-90"
               >
                 <Plus size={16} />
               </button>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => set(0)}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-[12px] py-3 text-sm font-semibold text-danger"
-          >
-            <RotateCcw size={16} /> Resetează
-          </button>
         </>
       )}
     </Sheet>
