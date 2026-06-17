@@ -5,8 +5,8 @@ import { AppShell } from './components/AppShell'
 import { CollectionScreen } from './pages/CollectionScreen'
 import { MissingScreen } from './pages/MissingScreen'
 import { DuplicatesScreen } from './pages/DuplicatesScreen'
-import { ShareScreen } from './pages/ShareScreen'
 import { SwapScreen } from './pages/SwapScreen'
+import { FriendsScreen } from './pages/FriendsScreen'
 import { LoginScreen } from './pages/LoginScreen'
 
 function AuthGate({ children }: { children: ReactNode }) {
@@ -32,7 +32,7 @@ export function App() {
             <Route path="/missing" element={<MissingScreen />} />
             <Route path="/spares" element={<DuplicatesScreen />} />
             <Route path="/swap" element={<SwapScreen />} />
-            <Route path="/share" element={<ShareScreen />} />
+            <Route path="/friends" element={<FriendsScreen />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AppShell>

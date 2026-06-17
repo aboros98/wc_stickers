@@ -18,7 +18,7 @@ import { haptic } from '../lib/haptics'
 import { ActionButton } from '../components/ActionButton'
 import { TileSkeleton } from '../components/TileSkeleton'
 import { QrScannerSheet } from '../components/QrScannerSheet'
-import { SectionLabel } from '../components/SectionLabel'
+import { MatchGrid } from '../components/MatchGrid'
 import type { CollectionItem } from '../lib/types'
 
 function extractPayload(s: string): string | null {
@@ -28,46 +28,6 @@ function extractPayload(s: string): string | null {
   if (m) return m[1]
   if (/^[A-Za-z0-9\-_]+$/.test(t)) return t
   return null
-}
-
-function groupByCountry(items: CollectionItem[]): [string, CollectionItem[]][] {
-  const map = new Map<string, CollectionItem[]>()
-  for (const it of items) {
-    const arr = map.get(it.country_code)
-    if (arr) arr.push(it)
-    else map.set(it.country_code, [it])
-  }
-  return [...map.entries()]
-}
-
-function SwapList({
-  items,
-  onApply,
-}: {
-  items: CollectionItem[]
-  onApply: (it: CollectionItem) => void
-}) {
-  return (
-    <div className="space-y-3">
-      {groupByCountry(items).map(([code, list]) => (
-        <div key={code}>
-          <SectionLabel code={code} name={list[0].country ?? code} />
-          <div className="flex flex-wrap gap-1.5">
-            {list.map((it) => (
-              <button
-                key={it.id}
-                type="button"
-                onClick={() => onApply(it)}
-                className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold tabnum ring-1 ring-border transition active:scale-90"
-              >
-                {it.country_code === 'FWC' ? it.sticker_code : it.slot_no}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
 }
 
 interface Applied {
@@ -141,12 +101,12 @@ export function SwapScreen() {
     <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <section className="mb-4 overflow-hidden rounded-[20px] border border-border bg-gradient-to-br from-surface-2 to-surface p-4">
         <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-fg-muted">
-          Cu prietenii
+          Cu un cod
         </p>
         <h1 className="font-display text-2xl font-extrabold">Schimb</h1>
         <p className="mt-1 text-sm text-fg-muted">
-          Atinge un număr ca să bifezi schimbul. Scanează codul unui prieten ca
-          să începi.
+          Scanează codul unui prieten, apoi atinge un abțibild ca să bifezi
+          schimbul.
         </p>
       </section>
 
@@ -190,13 +150,11 @@ export function SwapScreen() {
                   Primești <span className="tabnum">{match.get.length}</span>
                 </h2>
               </div>
-              {match.get.length ? (
-                <SwapList items={match.get} onApply={applyGet} />
-              ) : (
-                <p className="text-sm text-fg-muted">
-                  Nu au nicio dublură de care ai nevoie.
-                </p>
-              )}
+              <MatchGrid
+                items={match.get}
+                onApply={applyGet}
+                empty="Nu au nicio dublură de care ai nevoie."
+              />
             </div>
             <div className="h-px bg-border" />
             <div>
@@ -206,13 +164,11 @@ export function SwapScreen() {
                   Dai <span className="tabnum">{match.give.length}</span>
                 </h2>
               </div>
-              {match.give.length ? (
-                <SwapList items={match.give} onApply={applyGive} />
-              ) : (
-                <p className="text-sm text-fg-muted">
-                  Niciuna dintre dublurile tale nu se potrivește cu lipsurile lor.
-                </p>
-              )}
+              <MatchGrid
+                items={match.give}
+                onApply={applyGive}
+                empty="Nicio dublură care să se potrivească."
+              />
             </div>
 
             {total > 0 && (

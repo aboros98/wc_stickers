@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutGrid, CircleSlash2, Layers, ArrowLeftRight, Share2 } from 'lucide-react'
+import { LayoutGrid, CircleSlash2, Layers, ArrowLeftRight, Users } from 'lucide-react'
 
 const tabs = [
   { to: '/', label: 'Album', Icon: LayoutGrid, end: true },
   { to: '/missing', label: 'Lipsă', Icon: CircleSlash2, end: false },
   { to: '/spares', label: 'Dubluri', Icon: Layers, end: false },
   { to: '/swap', label: 'Schimb', Icon: ArrowLeftRight, end: false },
-  { to: '/share', label: 'Distribuie', Icon: Share2, end: false },
+  { to: '/friends', label: 'Prieteni', Icon: Users, end: false },
 ]
 
 /** Floating glassmorphism bottom navigation. */
