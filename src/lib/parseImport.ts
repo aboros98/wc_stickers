@@ -44,6 +44,8 @@ export interface ImportResult {
   ops: { id: number; count: number }[]
   matched: number
   unknown: number
+  /** Human-readable list of what didn't resolve, e.g. "MEX 19" or "MX — cod necunoscut". */
+  unknownLabels: string[]
 }
 
 /**
@@ -67,7 +69,13 @@ export function buildImport(
     desired.has(it.id) ? desired.get(it.id)! : it.count
 
   let matched = 0
-  let unknown = 0
+  // code -> distinct numbers that failed to resolve (deduped across have + doubles)
+  const missByCode = new Map<string, Set<number>>()
+  const noteMiss = (code: string, n: number) => {
+    let s = missByCode.get(code)
+    if (!s) missByCode.set(code, (s = new Set()))
+    s.add(n)
+  }
 
   const resolve = (code: string, n: number): CollectionItem | undefined =>
     code === 'FWC'
@@ -78,7 +86,7 @@ export function buildImport(
     for (const n of line.numbers) {
       const it = resolve(line.code, n)
       if (!it) {
-        unknown++
+        noteMiss(line.code, n)
         continue
       }
       matched++
@@ -89,16 +97,34 @@ export function buildImport(
     for (const n of line.numbers) {
       const it = resolve(line.code, n)
       if (!it) {
-        unknown++
+        noteMiss(line.code, n)
         continue
       }
       matched++
       desired.set(it.id, Math.max(base(it), 2))
     }
 
+  // Build readable labels. If the country code itself is unknown, collapse to one
+  // "cod necunoscut" line instead of listing every (meaningless) number under it.
+  const knownCodes = new Set<string>(items.map((it) => it.country_code))
+  knownCodes.add('FWC')
+  const unknownLabels: string[] = []
+  let unknown = 0
+  for (const [code, nums] of missByCode) {
+    unknown += nums.size
+    if (!knownCodes.has(code)) {
+      unknownLabels.push(`${code} — cod necunoscut`)
+    } else {
+      const sorted = [...nums].sort((a, b) => a - b)
+      unknownLabels.push(`${code} ${sorted.join(', ')}`)
+    }
+  }
+  unknownLabels.sort()
+
   return {
     ops: [...desired.entries()].map(([id, count]) => ({ id, count })),
     matched,
     unknown,
+    unknownLabels,
   }
 }

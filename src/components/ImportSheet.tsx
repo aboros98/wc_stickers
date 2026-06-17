@@ -79,6 +79,33 @@ export function ImportSheet({ open, onClose, items }: Props) {
         )}
       </div>
 
+      {result.unknownLabels.length > 0 && (
+        <div className="mb-3 rounded-[12px] border border-danger/30 bg-danger/10 p-3">
+          <p className="mb-2 text-xs font-bold text-danger">
+            Nu am găsit:
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {result.unknownLabels.slice(0, 40).map((l) => (
+              <span
+                key={l}
+                className="rounded-full bg-danger/15 px-2.5 py-1 text-xs font-semibold text-danger"
+              >
+                {l}
+              </span>
+            ))}
+            {result.unknownLabels.length > 40 && (
+              <span className="px-1 py-1 text-xs text-fg-muted">
+                +{result.unknownLabels.length - 40} altele
+              </span>
+            )}
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-fg-muted">
+            Verifică numărul — fiecare echipă are doar un anumit număr de
+            abțibilduri — sau codul țării (3 litere, ex. MEX).
+          </p>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={apply}
