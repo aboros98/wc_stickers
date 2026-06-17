@@ -9,7 +9,7 @@ import { ActionButton } from '../components/ActionButton'
 import { ProgressBar } from '../components/ProgressBar'
 import { EmptyState } from '../components/EmptyState'
 import { TileSkeleton } from '../components/TileSkeleton'
-import { Flag } from '../components/Flag'
+import { SectionLabel } from '../components/SectionLabel'
 
 export function MissingScreen() {
   const { sections, progress, isLoading } = useCollection()
@@ -109,13 +109,7 @@ export function MissingScreen() {
         <div className="space-y-5">
           {missingSections.map((s) => (
             <section key={s.code}>
-              <div className="mb-2 flex items-center gap-2">
-                <Flag code={s.code} className="h-3.5 w-5" />
-                <h2 className="font-display text-sm font-bold">{s.name}</h2>
-                <span className="tabnum text-xs text-fg-muted">
-                  {s.missing.length}
-                </span>
-              </div>
+              <SectionLabel code={s.code} name={s.name} count={s.missing.length} />
               <div className="flex flex-wrap gap-2">
                 {s.missing.map((it) => (
                   <button

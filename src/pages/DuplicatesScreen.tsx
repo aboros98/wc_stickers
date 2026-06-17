@@ -9,7 +9,7 @@ import { ShareCard } from '../components/ShareCard'
 import { ActionButton } from '../components/ActionButton'
 import { EmptyState } from '../components/EmptyState'
 import { TileSkeleton } from '../components/TileSkeleton'
-import { Flag } from '../components/Flag'
+import { SectionLabel } from '../components/SectionLabel'
 
 export function DuplicatesScreen() {
   const { sections, progress, isLoading } = useCollection()
@@ -115,10 +115,7 @@ export function DuplicatesScreen() {
         <div className="space-y-5">
           {dupeSections.map((s) => (
             <section key={s.code}>
-              <div className="mb-2 flex items-center gap-2">
-                <Flag code={s.code} className="h-3.5 w-5" />
-                <h2 className="font-display text-sm font-bold">{s.name}</h2>
-              </div>
+              <SectionLabel code={s.code} name={s.name} />
               <div className="space-y-2">
                 {s.dupes.map((it) => (
                   <div

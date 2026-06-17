@@ -28,9 +28,12 @@ export function ShareScreen() {
 
   return (
     <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <h1 className="mb-4 font-display text-2xl font-extrabold">
-        Distribuie albumul
-      </h1>
+      <section className="mb-4 overflow-hidden rounded-[20px] border border-border bg-gradient-to-br from-surface-2 to-surface p-4">
+        <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-fg-muted">
+          Albumul tău
+        </p>
+        <h1 className="font-display text-2xl font-extrabold">Distribuie</h1>
+      </section>
 
       <div className="flex justify-center">
         <ShareCard

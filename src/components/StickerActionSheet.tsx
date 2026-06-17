@@ -1,5 +1,6 @@
 import { Minus, Plus, RotateCcw } from 'lucide-react'
 import { Sheet } from './Sheet'
+import { Flag } from './Flag'
 import type { CollectionItem } from '../lib/types'
 import { statusOf } from '../lib/types'
 import { haptic } from '../lib/haptics'
@@ -33,11 +34,21 @@ function SegBtn({
   )
 }
 
-/** Long-press editor: exact state + spare quantity for one sticker. */
+/** Editor for one sticker: state + spare quantity, with flag + context. */
 export function StickerActionSheet({ item, onClose, onSetCount }: Props) {
   const count = item?.count ?? 0
   const status = item ? statusOf(item.count) : 'missing'
   const spare = count > 1 ? count - 1 : 0
+
+  const sub = !item
+    ? ''
+    : item.country_code === 'FWC'
+      ? (item.label ?? '')
+      : item.slot_no === 1
+        ? 'Emblemă'
+        : item.label === 'Team Photo'
+          ? 'Foto echipă'
+          : (item.country ?? '')
 
   const set = (c: number) => {
     if (!item) return
@@ -46,12 +57,21 @@ export function StickerActionSheet({ item, onClose, onSetCount }: Props) {
   }
 
   return (
-    <Sheet open={!!item} onClose={onClose} title={item?.sticker_code}>
+    <Sheet open={!!item} onClose={onClose}>
       {item && (
         <>
-          <p className="mb-4 text-sm text-fg-muted">
-            {item.label ?? item.country ?? item.country_code}
-          </p>
+          <div className="mb-4 flex items-center gap-3">
+            <Flag
+              code={item.country_code}
+              className="h-7 w-10 rounded-[3px] ring-1 ring-black/15"
+            />
+            <div className="min-w-0">
+              <div className="font-display text-lg font-bold leading-tight">
+                {item.sticker_code}
+              </div>
+              <div className="truncate text-xs text-fg-muted">{sub}</div>
+            </div>
+          </div>
 
           <div className="mb-4 grid grid-cols-3 gap-2">
             <SegBtn active={status === 'missing'} onClick={() => set(0)}>

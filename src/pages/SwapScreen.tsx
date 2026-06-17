@@ -18,7 +18,7 @@ import { haptic } from '../lib/haptics'
 import { ActionButton } from '../components/ActionButton'
 import { TileSkeleton } from '../components/TileSkeleton'
 import { QrScannerSheet } from '../components/QrScannerSheet'
-import { Flag } from '../components/Flag'
+import { SectionLabel } from '../components/SectionLabel'
 import type { CollectionItem } from '../lib/types'
 
 function extractPayload(s: string): string | null {
@@ -51,12 +51,7 @@ function SwapList({
     <div className="space-y-3">
       {groupByCountry(items).map(([code, list]) => (
         <div key={code}>
-          <div className="mb-1.5 flex items-center gap-2">
-            <Flag code={code} className="h-3 w-4" />
-            <span className="font-display text-sm font-bold">
-              {list[0].country ?? code}
-            </span>
-          </div>
+          <SectionLabel code={code} name={list[0].country ?? code} />
           <div className="flex flex-wrap gap-1.5">
             {list.map((it) => (
               <button
@@ -144,11 +139,16 @@ export function SwapScreen() {
 
   return (
     <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <h1 className="mb-1 font-display text-2xl font-extrabold">Schimb</h1>
-      <p className="mb-5 text-sm text-fg-muted">
-        Atinge un număr ca să bifezi schimbul. Scanează codul unui prieten ca să
-        începi.
-      </p>
+      <section className="mb-4 overflow-hidden rounded-[20px] border border-border bg-gradient-to-br from-surface-2 to-surface p-4">
+        <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-fg-muted">
+          Cu prietenii
+        </p>
+        <h1 className="font-display text-2xl font-extrabold">Schimb</h1>
+        <p className="mt-1 text-sm text-fg-muted">
+          Atinge un număr ca să bifezi schimbul. Scanează codul unui prieten ca
+          să începi.
+        </p>
+      </section>
 
       {applied ? (
         <div className="mb-6 rounded-[16px] border border-primary/40 bg-surface p-5 text-center">
