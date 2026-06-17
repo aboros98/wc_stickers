@@ -85,7 +85,7 @@ export function ImportSheet({ open, onClose, items }: Props) {
             Nu am găsit:
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {result.unknownLabels.slice(0, 40).map((l) => (
+            {result.unknownLabels.map((l) => (
               <span
                 key={l}
                 className="rounded-full bg-danger/15 px-2.5 py-1 text-xs font-semibold text-danger"
@@ -93,11 +93,6 @@ export function ImportSheet({ open, onClose, items }: Props) {
                 {l}
               </span>
             ))}
-            {result.unknownLabels.length > 40 && (
-              <span className="px-1 py-1 text-xs text-fg-muted">
-                +{result.unknownLabels.length - 40} altele
-              </span>
-            )}
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-fg-muted">
             Verifică numărul — fiecare echipă are doar un anumit număr de
