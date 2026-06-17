@@ -40,7 +40,13 @@ function groupByCountry(items: CollectionItem[]): [string, CollectionItem[]][] {
   return [...map.entries()]
 }
 
-function SwapList({ items }: { items: CollectionItem[] }) {
+function SwapList({
+  items,
+  onApply,
+}: {
+  items: CollectionItem[]
+  onApply: (it: CollectionItem) => void
+}) {
   return (
     <div className="space-y-3">
       {groupByCountry(items).map(([code, list]) => (
@@ -53,12 +59,14 @@ function SwapList({ items }: { items: CollectionItem[] }) {
           </div>
           <div className="flex flex-wrap gap-1.5">
             {list.map((it) => (
-              <span
+              <button
                 key={it.id}
-                className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold tabnum"
+                type="button"
+                onClick={() => onApply(it)}
+                className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold tabnum ring-1 ring-border transition active:scale-90"
               >
                 {it.country_code === 'FWC' ? it.sticker_code : it.slot_no}
-              </span>
+              </button>
             ))}
           </div>
         </div>
@@ -79,7 +87,6 @@ export function SwapScreen() {
   const { hash } = useLocation()
   const [pasted, setPasted] = useState('')
   const [scanOpen, setScanOpen] = useState(false)
-  const [confirming, setConfirming] = useState(false)
   const [applied, setApplied] = useState<Applied | null>(null)
 
   const myLink = useMemo(() => {
@@ -92,7 +99,16 @@ export function SwapScreen() {
   const theirStates = incoming ? decodeStates(incoming) : null
   const match = theirStates && items.length ? computeMatch(items, theirStates) : null
 
-  const applyTrade = () => {
+  const applyGet = (it: CollectionItem) => {
+    setCount.mutate({ stickerId: it.id, count: Math.max(it.count, 1) })
+    haptic('success')
+  }
+  const applyGive = (it: CollectionItem) => {
+    setCount.mutate({ stickerId: it.id, count: Math.max(0, it.count - 1) })
+    haptic('success')
+  }
+
+  const applyAll = () => {
     if (!match) return
     const undo = [
       ...match.get.map((it) => ({ id: it.id, prev: it.count })),
@@ -105,7 +121,6 @@ export function SwapScreen() {
     for (const it of match.give)
       setCount.mutate({ stickerId: it.id, count: Math.max(0, it.count - 1) })
     haptic('success')
-    setConfirming(false)
     setApplied({ got, gave, undo })
   }
 
@@ -125,11 +140,14 @@ export function SwapScreen() {
     )
   }
 
+  const total = match ? match.get.length + match.give.length : 0
+
   return (
     <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <h1 className="mb-1 font-display text-2xl font-extrabold">Schimb</h1>
       <p className="mb-5 text-sm text-fg-muted">
-        Compară dublurile tale cu lista de lipsuri a unui prieten — și invers.
+        Atinge un număr ca să bifezi schimbul. Scanează codul unui prieten ca să
+        începi.
       </p>
 
       {applied ? (
@@ -166,14 +184,14 @@ export function SwapScreen() {
         match && (
           <div className="mb-6 space-y-5 rounded-[16px] border border-border bg-surface p-4">
             <div>
-              <div className="mb-2 flex items-center gap-2 text-primary">
+              <div className="mb-2 flex items-center gap-2 text-turquoise">
                 <ArrowDownLeft size={18} />
                 <h2 className="font-display text-base font-bold">
                   Primești <span className="tabnum">{match.get.length}</span>
                 </h2>
               </div>
               {match.get.length ? (
-                <SwapList items={match.get} />
+                <SwapList items={match.get} onApply={applyGet} />
               ) : (
                 <p className="text-sm text-fg-muted">
                   Nu au nicio dublură de care ai nevoie.
@@ -189,7 +207,7 @@ export function SwapScreen() {
                 </h2>
               </div>
               {match.give.length ? (
-                <SwapList items={match.give} />
+                <SwapList items={match.give} onApply={applyGive} />
               ) : (
                 <p className="text-sm text-fg-muted">
                   Niciuna dintre dublurile tale nu se potrivește cu lipsurile lor.
@@ -197,33 +215,19 @@ export function SwapScreen() {
               )}
             </div>
 
-            {(match.get.length > 0 || match.give.length > 0) && (
-              <div className="space-y-2">
-                <p className="text-center text-xs text-fg-muted">
-                  Marchează {match.get.length} ca fiind colectate și folosește{' '}
-                  {match.give.length} dubluri.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => (confirming ? applyTrade() : setConfirming(true))}
-                  className={`flex w-full items-center justify-center gap-2 rounded-[12px] py-3 font-bold ${
-                    confirming ? 'bg-primary text-black' : 'bg-surface-2 text-fg'
-                  }`}
-                >
-                  <Check size={18} />
-                  {confirming
-                    ? 'Atinge din nou pentru confirmare'
-                    : 'Marchează ca schimbate'}
-                </button>
-              </div>
+            {total > 0 && (
+              <button
+                type="button"
+                onClick={applyAll}
+                className="flex w-full items-center justify-center gap-2 rounded-[12px] bg-primary py-3 font-bold text-black active:scale-[0.98]"
+              >
+                <Check size={18} /> Marchează toate ({total})
+              </button>
             )}
 
             <Link
               to="/swap"
-              onClick={() => {
-                setPasted('')
-                setConfirming(false)
-              }}
+              onClick={() => setPasted('')}
               className="block text-center text-sm text-fg-muted underline"
             >
               Șterge
@@ -236,12 +240,7 @@ export function SwapScreen() {
         <h2 className="mb-3 font-display text-base font-bold">Codul tău de schimb</h2>
         <div className="mx-auto inline-block rounded-[12px] bg-white p-3">
           {myLink && (
-            <QRCodeSVG
-              value={myLink}
-              size={180}
-              bgColor="#ffffff"
-              fgColor="#0A0A0C"
-            />
+            <QRCodeSVG value={myLink} size={180} bgColor="#ffffff" fgColor="#0A0A0C" />
           )}
         </div>
         <p className="mt-3 text-xs text-fg-muted">

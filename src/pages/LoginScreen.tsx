@@ -62,113 +62,94 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="relative mx-auto flex min-h-dvh max-w-sm flex-col justify-center overflow-hidden px-6">
-      <p
-        className="anim-fade-up text-center font-display text-xs font-bold uppercase tracking-[0.25em] text-gold"
-        style={{ animationDelay: '0ms' }}
-      >
-        Cupa Mondială 2026
-      </p>
-
-      <div
-        className="anim-fade-up relative my-6 flex justify-center"
-        style={{ animationDelay: '80ms' }}
-      >
-        <div className="anim-float relative">
-          <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[190px] w-[190px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/30 blur-3xl" />
-          <img
-            src={wc26}
-            alt="Cupa Mondială 2026"
-            className="h-auto w-[136px] drop-shadow-[0_14px_30px_rgba(225,181,48,0.4)]"
-          />
-        </div>
-      </div>
-
-      <div
-        className="anim-fade-up text-center"
-        style={{ animationDelay: '200ms' }}
-      >
-        <h1 className="font-display text-3xl font-extrabold">Album Abțibilduri</h1>
-        <p className="mt-2 text-sm text-fg-muted">
+    <div className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-5 py-8">
+      {/* Hero card — same language as the Album hero */}
+      <section className="anim-fade-up relative mb-5 overflow-hidden rounded-[24px] border border-border bg-gradient-to-br from-surface-2 to-surface p-6 text-center">
+        <div className="pointer-events-none absolute -top-10 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-gold/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-12 right-0 h-32 w-32 rounded-full bg-turquoise/15 blur-3xl" />
+        <img
+          src={wc26}
+          alt="Cupa Mondială 2026"
+          className="relative mx-auto h-auto w-[116px] drop-shadow-[0_10px_24px_rgba(0,0,0,0.18)]"
+        />
+        <p className="relative mt-4 font-display text-[10px] font-bold uppercase tracking-[0.25em] text-gold">
+          Cupa Mondială 2026
+        </p>
+        <h1 className="relative mt-1 font-display text-3xl font-extrabold">
+          Album Abțibilduri
+        </h1>
+        <p className="relative mt-1.5 text-sm text-fg-muted">
           Deschide pachetul. Adună toate 980.
         </p>
-      </div>
+      </section>
 
-      <button
-        type="button"
-        onClick={() => signInWithGoogle()}
-        className="anim-fade-up mt-7 flex h-12 w-full items-center justify-center gap-3 rounded-[12px] bg-white font-bold text-[#1f1f1f] shadow-sm active:scale-95"
-        style={{ animationDelay: '320ms' }}
-      >
-        <GoogleIcon /> Continuă cu Google
-      </button>
-
-      <div
-        className="anim-fade-up my-5 flex items-center gap-3 text-xs uppercase tracking-wide text-fg-muted"
-        style={{ animationDelay: '400ms' }}
-      >
-        <div className="h-px flex-1 bg-border" />
-        sau
-        <div className="h-px flex-1 bg-border" />
-      </div>
-
-      <form
-        onSubmit={submit}
-        className="anim-fade-up space-y-3"
-        style={{ animationDelay: '460ms' }}
-      >
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="tu@email.com"
-          autoComplete="email"
-          className="h-12 w-full rounded-[12px] border border-border bg-surface-2 px-4 text-base outline-none focus:border-primary"
-        />
-        <input
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Parolă"
-          autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-          className="h-12 w-full rounded-[12px] border border-border bg-surface-2 px-4 text-base outline-none focus:border-primary"
-        />
+      <div className="anim-fade-up" style={{ animationDelay: '120ms' }}>
         <button
-          type="submit"
-          disabled={busy}
-          className="h-12 w-full rounded-[12px] bg-gold font-bold text-black active:scale-[0.98] disabled:opacity-50"
+          type="button"
+          onClick={() => signInWithGoogle()}
+          className="flex h-12 w-full items-center justify-center gap-3 rounded-[12px] bg-white font-bold text-[#1f1f1f] shadow-sm ring-1 ring-black/5 active:scale-95"
         >
-          {mode === 'signin' ? 'Conectare' : 'Creează cont'}
+          <GoogleIcon /> Continuă cu Google
         </button>
-      </form>
 
-      <button
-        type="button"
-        onClick={magic}
-        disabled={busy}
-        className="anim-fade-up mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-surface-2 text-sm font-semibold active:scale-95 disabled:opacity-50"
-        style={{ animationDelay: '520ms' }}
-      >
-        <Mail size={16} /> Link pe email
-      </button>
+        <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-wide text-fg-muted">
+          <div className="h-px flex-1 bg-border" />
+          sau
+          <div className="h-px flex-1 bg-border" />
+        </div>
 
-      {msg && <p className="mt-4 text-center text-sm text-fg-muted">{msg}</p>}
+        <form onSubmit={submit} className="space-y-3">
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="tu@email.com"
+            autoComplete="email"
+            className="h-12 w-full rounded-[12px] border border-border bg-surface px-4 text-base outline-none focus:border-turquoise"
+          />
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Parolă"
+            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+            className="h-12 w-full rounded-[12px] border border-border bg-surface px-4 text-base outline-none focus:border-turquoise"
+          />
+          <button
+            type="submit"
+            disabled={busy}
+            className="h-12 w-full rounded-[12px] bg-gold font-bold text-black active:scale-[0.98] disabled:opacity-50"
+          >
+            {mode === 'signin' ? 'Conectare' : 'Creează cont'}
+          </button>
+        </form>
 
-      <button
-        type="button"
-        onClick={() => {
-          setMode((m) => (m === 'signin' ? 'signup' : 'signin'))
-          setMsg(null)
-        }}
-        className="anim-fade-up mt-6 text-center text-sm text-fg-muted underline"
-        style={{ animationDelay: '580ms' }}
-      >
-        {mode === 'signin'
-          ? 'Cont nou? Creează unul'
-          : 'Ai deja cont? Conectează-te'}
-      </button>
+        <button
+          type="button"
+          onClick={magic}
+          disabled={busy}
+          className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-surface-2 text-sm font-semibold active:scale-95 disabled:opacity-50"
+        >
+          <Mail size={16} /> Link pe email
+        </button>
+
+        {msg && <p className="mt-4 text-center text-sm text-fg-muted">{msg}</p>}
+
+        <button
+          type="button"
+          onClick={() => {
+            setMode((m) => (m === 'signin' ? 'signup' : 'signin'))
+            setMsg(null)
+          }}
+          className="mt-6 block w-full text-center text-sm font-medium text-turquoise underline"
+        >
+          {mode === 'signin'
+            ? 'Cont nou? Creează unul'
+            : 'Ai deja cont? Conectează-te'}
+        </button>
+      </div>
     </div>
   )
 }

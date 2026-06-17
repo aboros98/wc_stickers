@@ -6,6 +6,7 @@ import { shareText, copyText, shareImage } from '../lib/share'
 import { haptic } from '../lib/haptics'
 import { ShareCard } from '../components/ShareCard'
 import { ActionButton } from '../components/ActionButton'
+import { ProgressBar } from '../components/ProgressBar'
 import { EmptyState } from '../components/EmptyState'
 import { TileSkeleton } from '../components/TileSkeleton'
 import { Flag } from '../components/Flag'
@@ -38,7 +39,8 @@ export function MissingScreen() {
   if (isLoading) {
     return (
       <div className="space-y-3 px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
-        {Array.from({ length: 8 }).map((_, i) => (
+        <TileSkeleton className="h-28 w-full rounded-[20px]" />
+        {Array.from({ length: 6 }).map((_, i) => (
           <TileSkeleton key={i} className="h-12 w-full" />
         ))}
       </div>
@@ -47,14 +49,23 @@ export function MissingScreen() {
 
   return (
     <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <header className="mb-4">
-        <h1 className="font-display text-3xl font-extrabold tabnum">
-          {progress.missing} <span className="text-fg-muted">lipsă</span>
-        </h1>
-        <p className="text-sm text-fg-muted">
-          Atinge un număr pe care l-ai găsit ca să-l marchezi colectat.
+      <section className="mb-4 overflow-hidden rounded-[20px] border border-border bg-gradient-to-br from-surface-2 to-surface p-4">
+        <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-fg-muted">
+          Îți lipsesc
         </p>
-      </header>
+        <div className="mt-1 flex items-end gap-2">
+          <span className="font-display text-5xl font-black leading-none tabnum">
+            {progress.missing}
+          </span>
+          <span className="pb-1 text-sm text-fg-muted">din {progress.total}</span>
+        </div>
+        <div className="mt-3">
+          <ProgressBar value={progress.have} total={progress.total} />
+        </div>
+        <p className="mt-2 text-xs text-fg-muted">
+          Atinge un număr pe care l-ai găsit ca să-l colectezi.
+        </p>
+      </section>
 
       <div className="mb-6 grid grid-cols-3 gap-2">
         <ActionButton
@@ -67,7 +78,9 @@ export function MissingScreen() {
         </ActionButton>
         <ActionButton
           icon={<Share2 size={16} />}
-          onClick={() => shareText(text, 'Panini Cupa Mondială 2026 — abțibilduri căutate')}
+          onClick={() =>
+            shareText(text, 'Panini Cupa Mondială 2026 — abțibilduri căutate')
+          }
         >
           Distribuie
         </ActionButton>
@@ -112,7 +125,7 @@ export function MissingScreen() {
                       haptic('selection')
                       setCount.mutate({ stickerId: it.id, count: 1 })
                     }}
-                    className="rounded-full bg-surface-2 px-3 py-1.5 text-sm font-semibold tabnum active:scale-95"
+                    className="rounded-full bg-surface-2 px-3 py-1.5 text-sm font-semibold tabnum ring-1 ring-border transition active:scale-90"
                   >
                     {it.country_code === 'FWC' ? it.sticker_code : it.slot_no}
                   </button>

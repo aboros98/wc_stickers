@@ -135,7 +135,7 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
       {...handlers}
     >
       <span
-        className="pointer-events-none absolute inset-0 flex items-center justify-center font-display text-[58px] font-black leading-none text-white/[0.06]"
+        className="pointer-events-none absolute inset-0 flex items-center justify-center font-display text-[58px] font-black leading-none text-white/[0.035]"
         aria-hidden="true"
       >
         26

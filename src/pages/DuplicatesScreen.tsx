@@ -40,7 +40,8 @@ export function DuplicatesScreen() {
   if (isLoading) {
     return (
       <div className="space-y-3 px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
-        {Array.from({ length: 8 }).map((_, i) => (
+        <TileSkeleton className="h-28 w-full rounded-[20px]" />
+        {Array.from({ length: 6 }).map((_, i) => (
           <TileSkeleton key={i} className="h-12 w-full" />
         ))}
       </div>
@@ -49,16 +50,22 @@ export function DuplicatesScreen() {
 
   return (
     <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <header className="mb-4">
-        <h1 className="font-display text-3xl font-extrabold tabnum">
-          {progress.duplicates} <span className="text-fg-muted">dubluri</span>
-        </h1>
-        <p className="text-sm text-fg-muted">
+      <section className="mb-4 overflow-hidden rounded-[20px] border border-border bg-gradient-to-br from-surface-2 to-surface p-4">
+        <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-fg-muted">
+          Dubluri
+        </p>
+        <div className="mt-1 flex items-end gap-2">
+          <span className="font-display text-5xl font-black leading-none tabnum text-duplicate">
+            {progress.duplicates}
+          </span>
+          <span className="pb-1 text-sm text-fg-muted">de schimbat</span>
+        </div>
+        <p className="mt-2 text-xs text-fg-muted">
           Abțibilduri pe care le poți da la schimb.
         </p>
-      </header>
+      </section>
 
-      <div className="mb-6 grid grid-cols-3 gap-2">
+      <div className="mb-4 grid grid-cols-3 gap-2">
         <ActionButton
           icon={<Copy size={16} />}
           onClick={async () => {
@@ -69,7 +76,9 @@ export function DuplicatesScreen() {
         </ActionButton>
         <ActionButton
           icon={<Share2 size={16} />}
-          onClick={() => shareText(text, 'Panini Cupa Mondială 2026 — dublurile mele')}
+          onClick={() =>
+            shareText(text, 'Panini Cupa Mondială 2026 — dublurile mele')
+          }
         >
           Distribuie
         </ActionButton>
@@ -89,7 +98,7 @@ export function DuplicatesScreen() {
 
       <Link
         to="/swap"
-        className="mb-5 flex items-center justify-center gap-2 rounded-[12px] border border-border py-3 text-sm font-semibold text-fg active:scale-95"
+        className="mb-5 flex items-center justify-center gap-2 rounded-[12px] bg-turquoise/15 py-3 text-sm font-bold text-turquoise active:scale-[0.98]"
       >
         <ArrowLeftRight size={16} /> Găsește schimburi cu un prieten
       </Link>
@@ -116,13 +125,8 @@ export function DuplicatesScreen() {
                     key={it.id}
                     className="flex items-center justify-between rounded-[12px] bg-surface-2 px-3 py-2"
                   >
-                    <div className="min-w-0">
-                      <div className="font-semibold tabnum">
-                        {it.sticker_code}
-                      </div>
-                      <div className="truncate text-xs text-fg-muted">
-                        {it.label}
-                      </div>
+                    <div className="font-display text-lg font-extrabold tabnum">
+                      {it.sticker_code}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
