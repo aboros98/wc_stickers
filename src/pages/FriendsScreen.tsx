@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -7,6 +7,8 @@ import {
   X,
   ArrowDownLeft,
   ArrowUpRight,
+  ArrowLeftRight,
+  type LucideIcon,
 } from 'lucide-react'
 import { useCollection, useBulkSetCount } from '../data/useCollection'
 import {
@@ -18,10 +20,44 @@ import {
 } from '../data/friends'
 import { hideFriend } from '../lib/friends'
 import { haptic } from '../lib/haptics'
-import { MatchGrid } from '../components/MatchGrid'
+import { Flag } from '../components/Flag'
+import { Snackbar } from '../components/Snackbar'
 import { EmptyState } from '../components/EmptyState'
 import { TileSkeleton } from '../components/TileSkeleton'
 import type { CollectionItem } from '../lib/types'
+
+/** The number shown on a chip — slot number for teams, the FWC index for specials. */
+const numOf = (it: CollectionItem) =>
+  it.country_code === 'FWC'
+    ? it.sticker_code.replace(/^FWC/, '') || it.sticker_code
+    : it.slot_no
+
+interface CountryGroup {
+  code: string
+  name: string
+  items: CollectionItem[]
+}
+
+/** Group items into contiguous country blocks (catalog order is already grouped). */
+function groupByCountry(items: CollectionItem[]): CountryGroup[] {
+  const out: CountryGroup[] = []
+  const idx = new Map<string, number>()
+  for (const it of items) {
+    let i = idx.get(it.country_code)
+    if (i === undefined) {
+      i = out.length
+      idx.set(it.country_code, i)
+      out.push({
+        code: it.country_code,
+        name:
+          it.country ?? (it.country_code === 'FWC' ? 'Speciale' : it.country_code),
+        items: [],
+      })
+    }
+    out[i].items.push(it)
+  }
+  return out
+}
 
 function Avatar({ name, src }: { name: string; src?: string | null }) {
   if (src)
@@ -39,17 +75,151 @@ function Avatar({ name, src }: { name: string; src?: string | null }) {
   )
 }
 
+/** One direction of a swap (Iei / Dai): country headers + selectable number chips. */
+function SwapSection({
+  title,
+  Icon,
+  tone,
+  items,
+  selected,
+  setSelected,
+  onApply,
+  verb,
+  emptyText,
+}: {
+  title: string
+  Icon: LucideIcon
+  tone: 'turquoise' | 'duplicate'
+  items: CollectionItem[]
+  selected: Set<number>
+  setSelected: (s: Set<number>) => void
+  onApply: () => void
+  verb: string
+  emptyText: string
+}) {
+  const toneText = tone === 'duplicate' ? 'text-duplicate' : 'text-turquoise'
+  const chipSel =
+    tone === 'duplicate'
+      ? 'bg-duplicate/20 ring-duplicate text-duplicate'
+      : 'bg-turquoise/20 ring-turquoise text-turquoise'
+  const applyBg =
+    tone === 'duplicate' ? 'bg-duplicate text-white' : 'bg-turquoise text-black'
+
+  const chosen = items.filter((it) => selected.has(it.id)).length
+  const allSel = items.length > 0 && chosen === items.length
+
+  const toggleId = (id: number) => {
+    const next = new Set(selected)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setSelected(next)
+    haptic('selection')
+  }
+  const toggleGroup = (groupItems: CollectionItem[]) => {
+    const all = groupItems.every((it) => selected.has(it.id))
+    const next = new Set(selected)
+    for (const it of groupItems) {
+      if (all) next.delete(it.id)
+      else next.add(it.id)
+    }
+    setSelected(next)
+    haptic('selection')
+  }
+  const toggleAll = () =>
+    setSelected(allSel ? new Set() : new Set(items.map((it) => it.id)))
+
+  return (
+    <section>
+      <div className="mb-2.5 flex items-center justify-between">
+        <div className={`flex items-center gap-2 ${toneText}`}>
+          <Icon size={16} />
+          <h3 className="font-display text-sm font-bold">{title}</h3>
+        </div>
+        {items.length > 0 && (
+          <button
+            type="button"
+            onClick={toggleAll}
+            className={`text-xs font-semibold ${toneText} active:opacity-70`}
+          >
+            {allSel ? 'Niciunul' : 'Tot'}
+          </button>
+        )}
+      </div>
+
+      {items.length === 0 ? (
+        <p className="text-sm text-fg-muted">{emptyText}</p>
+      ) : (
+        <>
+          <div className="space-y-3">
+            {groupByCountry(items).map((g) => {
+              const gSel = g.items.filter((it) => selected.has(it.id)).length
+              const gAll = gSel === g.items.length
+              return (
+                <div key={g.code}>
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(g.items)}
+                    className="mb-1.5 flex w-full items-center gap-1.5"
+                  >
+                    <Flag
+                      code={g.code}
+                      className="h-3 w-4 rounded-[2px] ring-1 ring-black/10"
+                    />
+                    <span
+                      className={`font-display text-sm font-bold ${gAll ? toneText : 'text-fg'}`}
+                    >
+                      {g.name}
+                    </span>
+                    <span className="ml-auto text-[11px] tabnum text-fg-muted">
+                      {gSel}/{g.items.length}
+                    </span>
+                  </button>
+                  <div className="flex flex-wrap gap-1.5">
+                    {g.items.map((it) => {
+                      const on = selected.has(it.id)
+                      return (
+                        <button
+                          key={it.id}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => toggleId(it.id)}
+                          className={`min-w-[2.4rem] rounded-[9px] px-2 py-1.5 text-sm font-bold tabnum ring-1 transition active:scale-90 ${
+                            on ? chipSel : 'bg-surface-2 text-fg ring-border'
+                          }`}
+                        >
+                          {numOf(it)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <button
+            type="button"
+            disabled={!chosen}
+            onClick={onApply}
+            className={`mt-3 w-full rounded-[12px] py-2.5 text-sm font-bold transition active:scale-[0.98] disabled:opacity-40 ${applyBg}`}
+          >
+            {chosen ? `${verb} ${chosen}` : `Alege ce ${verb === 'Ia' ? 'iei' : 'dai'}`}
+          </button>
+        </>
+      )}
+    </section>
+  )
+}
+
 function FriendCard({
   friend,
   myItems,
-  onApplyGet,
-  onApplyGive,
+  onApplyTrade,
   onRemove,
 }: {
   friend: FriendProfile
   myItems: CollectionItem[]
-  onApplyGet: (items: CollectionItem[]) => void
-  onApplyGive: (items: CollectionItem[]) => void
+  onApplyTrade: (get: CollectionItem[], give: CollectionItem[]) => void
   onRemove: (id: string) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -78,38 +248,20 @@ function FriendCard({
     }
   }, [rows, myItems])
 
-  // Selection is derived against the live lists, so it self-prunes when the
-  // friend's collection refetches or items get applied.
   const getChosen = get.filter((it) => getSel.has(it.id))
   const giveChosen = give.filter((it) => giveSel.has(it.id))
-  const allGet = get.length > 0 && getChosen.length === get.length
-  const allGive = give.length > 0 && giveChosen.length === give.length
 
-  const toggle = (which: 'get' | 'give', id: number) => {
-    if (which === 'get') {
-      const next = new Set(getSel)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      setGetSel(next)
-    } else {
-      const next = new Set(giveSel)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      setGiveSel(next)
-    }
-    haptic('selection')
-  }
-  const toggleAll = (which: 'get' | 'give') => {
-    if (which === 'get')
-      setGetSel(allGet ? new Set() : new Set(get.map((it) => it.id)))
-    else setGiveSel(allGive ? new Set() : new Set(give.map((it) => it.id)))
-  }
   const confirmGet = () => {
-    onApplyGet(getChosen)
+    onApplyTrade(getChosen, [])
     setGetSel(new Set())
   }
   const confirmGive = () => {
-    onApplyGive(giveChosen)
+    onApplyTrade([], giveChosen)
+    setGiveSel(new Set())
+  }
+  const swapAll = () => {
+    onApplyTrade(get, give)
+    setGetSel(new Set())
     setGiveSel(new Set())
   }
 
@@ -168,83 +320,44 @@ function FriendCard({
 
           {open && (
             <div className="mt-4 space-y-5">
-              <section>
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-turquoise">
-                    <ArrowDownLeft size={16} />
-                    <h3 className="font-display text-sm font-bold">
-                      Iei de la {friend.name}
-                    </h3>
-                  </div>
-                  {get.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => toggleAll('get')}
-                      className="text-xs font-semibold text-turquoise active:opacity-70"
-                    >
-                      {allGet ? 'Niciunul' : 'Tot'}
-                    </button>
-                  )}
-                </div>
-                <MatchGrid
-                  items={get}
-                  selected={getSel}
-                  onToggle={(id) => toggle('get', id)}
-                  tone="turquoise"
-                  empty="Nimic de luat."
-                />
-                {get.length > 0 && (
-                  <button
-                    type="button"
-                    disabled={!getChosen.length}
-                    onClick={confirmGet}
-                    className="mt-2.5 w-full rounded-[12px] bg-turquoise py-2.5 text-sm font-bold text-black transition active:scale-[0.98] disabled:opacity-40"
-                  >
-                    {getChosen.length ? `Ia ${getChosen.length}` : 'Alege ce iei'}
-                  </button>
-                )}
-              </section>
+              {get.length > 0 && give.length > 0 && (
+                <button
+                  type="button"
+                  onClick={swapAll}
+                  className="flex w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-r from-turquoise to-duplicate py-3 font-bold text-white transition active:scale-[0.98]"
+                >
+                  <ArrowLeftRight size={18} /> Schimbă tot
+                  <span className="text-xs font-semibold opacity-90">
+                    ia {get.length} · dă {give.length}
+                  </span>
+                </button>
+              )}
+
+              <SwapSection
+                title={`Iei de la ${friend.name}`}
+                Icon={ArrowDownLeft}
+                tone="turquoise"
+                items={get}
+                selected={getSel}
+                setSelected={setGetSel}
+                onApply={confirmGet}
+                verb="Ia"
+                emptyText="Nimic de luat de la el."
+              />
 
               <div className="h-px bg-border" />
 
-              <section>
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-duplicate">
-                    <ArrowUpRight size={16} />
-                    <h3 className="font-display text-sm font-bold">Îi dai</h3>
-                  </div>
-                  {give.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => toggleAll('give')}
-                      className="text-xs font-semibold text-duplicate active:opacity-70"
-                    >
-                      {allGive ? 'Niciunul' : 'Tot'}
-                    </button>
-                  )}
-                </div>
-                <MatchGrid
-                  items={give}
-                  selected={giveSel}
-                  onToggle={(id) => toggle('give', id)}
-                  tone="duplicate"
-                  empty="Nimic de dat."
-                />
-                {give.length > 0 && (
-                  <button
-                    type="button"
-                    disabled={!giveChosen.length}
-                    onClick={confirmGive}
-                    className="mt-2.5 w-full rounded-[12px] bg-duplicate py-2.5 text-sm font-bold text-white transition active:scale-[0.98] disabled:opacity-40"
-                  >
-                    {giveChosen.length ? `Dă ${giveChosen.length}` : 'Alege ce dai'}
-                  </button>
-                )}
-              </section>
-
-              <p className="text-center text-[11px] text-fg-muted">
-                Atinge abțibildurile, apoi apasă Ia / Dă.
-              </p>
+              <SwapSection
+                title="Îi dai"
+                Icon={ArrowUpRight}
+                tone="duplicate"
+                items={give}
+                selected={giveSel}
+                setSelected={setGiveSel}
+                onApply={confirmGive}
+                verb="Dă"
+                emptyText="Nimic de dat acum."
+              />
             </div>
           )}
         </>
@@ -260,23 +373,57 @@ export function FriendsScreen() {
   const qc = useQueryClient()
   const { hash } = useLocation()
   const { doAdd } = useAddFriend()
+  const [undo, setUndo] = useState<{
+    ops: { id: number; count: number }[]
+    message: string
+  } | null>(null)
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Someone opening your share link (".../friends#add=CODE") gets added on land.
   useEffect(() => {
     const m = hash.match(/add=([A-Za-z0-9]+)/)
     if (m) doAdd(m[1])
   }, [hash, doAdd])
+  useEffect(
+    () => () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current)
+    },
+    [],
+  )
 
-  const applyGet = (its: CollectionItem[]) => {
-    if (!its.length) return
-    bulk.mutate(its.map((it) => ({ id: it.id, count: Math.max(it.count, 1) })))
-    haptic('success')
+  const flashUndo = (ops: { id: number; count: number }[], message: string) => {
+    if (undoTimer.current) clearTimeout(undoTimer.current)
+    setUndo({ ops, message })
+    undoTimer.current = setTimeout(() => setUndo(null), 6000)
   }
-  const applyGive = (its: CollectionItem[]) => {
-    if (!its.length) return
-    bulk.mutate(its.map((it) => ({ id: it.id, count: Math.max(0, it.count - 1) })))
+
+  const applyTrade = (getItems: CollectionItem[], giveItems: CollectionItem[]) => {
+    const ops = [
+      ...getItems.map((it) => ({ id: it.id, count: Math.max(it.count, 1) })),
+      ...giveItems.map((it) => ({ id: it.id, count: Math.max(0, it.count - 1) })),
+    ]
+    if (!ops.length) return
+    // Snapshot the previous counts so the swap is undoable.
+    const prev = [...getItems, ...giveItems].map((it) => ({
+      id: it.id,
+      count: it.count,
+    }))
+    bulk.mutate(ops)
     haptic('success')
+    const parts: string[] = []
+    if (getItems.length) parts.push(`${getItems.length} primite`)
+    if (giveItems.length) parts.push(`${giveItems.length} date`)
+    flashUndo(prev, parts.join(' · '))
   }
+
+  const onUndo = () => {
+    if (!undo) return
+    bulk.mutate(undo.ops)
+    haptic('selection')
+    if (undoTimer.current) clearTimeout(undoTimer.current)
+    setUndo(null)
+  }
+
   const remove = async (id: string) => {
     hideFriend(id)
     haptic('selection')
@@ -322,12 +469,15 @@ export function FriendsScreen() {
               key={f.id}
               friend={f}
               myItems={myItems}
-              onApplyGet={applyGet}
-              onApplyGive={applyGive}
+              onApplyTrade={applyTrade}
               onRemove={remove}
             />
           ))}
         </div>
+      )}
+
+      {undo && (
+        <Snackbar message={undo.message} actionLabel="Anulează" onAction={onUndo} />
       )}
     </div>
   )

@@ -95,7 +95,11 @@ export function StickerActionSheet({ item, onClose, onSetCount }: Props) {
               >
                 <Minus size={16} />
               </button>
-              <span className="w-6 text-center tabnum text-lg font-bold">
+              <span
+                key={spare}
+                className="w-6 text-center tabnum text-lg font-bold"
+                style={{ animation: 'pop 160ms ease-out' }}
+              >
                 {spare}
               </span>
               <button
