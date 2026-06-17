@@ -1,20 +1,33 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from './auth/AuthProvider'
 import { AppShell } from './components/AppShell'
 import { CollectionScreen } from './pages/CollectionScreen'
-import { MissingScreen } from './pages/MissingScreen'
-import { DuplicatesScreen } from './pages/DuplicatesScreen'
-import { SwapScreen } from './pages/SwapScreen'
 import { FriendsScreen } from './pages/FriendsScreen'
 import { LoginScreen } from './pages/LoginScreen'
+
+/** Reset scroll to the top whenever the route changes. */
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
+}
 
 function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) {
     return (
       <div className="grid min-h-dvh place-items-center text-fg-muted">
-        Loading…
+        Se încarcă…
       </div>
     )
   }
@@ -25,13 +38,11 @@ function AuthGate({ children }: { children: ReactNode }) {
 export function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+      <ScrollToTop />
       <AuthGate>
         <AppShell>
           <Routes>
             <Route path="/" element={<CollectionScreen />} />
-            <Route path="/missing" element={<MissingScreen />} />
-            <Route path="/spares" element={<DuplicatesScreen />} />
-            <Route path="/swap" element={<SwapScreen />} />
             <Route path="/friends" element={<FriendsScreen />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

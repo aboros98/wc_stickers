@@ -1,14 +1,8 @@
-// A friend the user has added, stored locally (per device).
+// Friends you've removed locally (so they stay hidden even if they added you).
 
-export interface SavedFriend {
-  id: string
-  code: string
-  name: string
-}
+const KEY = 'wc26-hidden-friends'
 
-const KEY = 'wc26-friends'
-
-export function getFriends(): SavedFriend[] {
+export function getHidden(): string[] {
   try {
     const v = JSON.parse(localStorage.getItem(KEY) || '[]')
     return Array.isArray(v) ? v : []
@@ -17,23 +11,23 @@ export function getFriends(): SavedFriend[] {
   }
 }
 
-function save(list: SavedFriend[]) {
+export function hideFriend(id: string): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(list))
+    const s = new Set(getHidden())
+    s.add(id)
+    localStorage.setItem(KEY, JSON.stringify([...s]))
   } catch {
     /* ignore */
   }
 }
 
-export function addFriend(f: SavedFriend): SavedFriend[] {
-  const list = getFriends().filter((x) => x.id !== f.id)
-  list.push(f)
-  save(list)
-  return list
-}
-
-export function removeFriend(id: string): SavedFriend[] {
-  const list = getFriends().filter((x) => x.id !== id)
-  save(list)
-  return list
+export function unhideFriend(id: string): void {
+  try {
+    localStorage.setItem(
+      KEY,
+      JSON.stringify(getHidden().filter((x) => x !== id)),
+    )
+  } catch {
+    /* ignore */
+  }
 }

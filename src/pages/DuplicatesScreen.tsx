@@ -97,10 +97,10 @@ export function DuplicatesScreen() {
       </div>
 
       <Link
-        to="/swap"
+        to="/friends"
         className="mb-5 flex items-center justify-center gap-2 rounded-[12px] bg-turquoise/15 py-3 text-sm font-bold text-turquoise active:scale-[0.98]"
       >
-        <ArrowLeftRight size={16} /> Găsește schimburi cu un prieten
+        <ArrowLeftRight size={16} /> Schimbă cu prietenii
       </Link>
 
       {dupeSections.length === 0 ? (

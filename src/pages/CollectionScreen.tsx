@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Plus, Search, LogOut, X } from 'lucide-react'
+import { Plus, Search, LogOut, X, ClipboardPaste } from 'lucide-react'
 import { useCollection, useSetCount } from '../data/useCollection'
 import { ProgressRing } from '../components/ProgressRing'
 import { FilterChip } from '../components/FilterChip'
@@ -10,6 +10,7 @@ import { TileSkeleton } from '../components/TileSkeleton'
 import { EmptyState } from '../components/EmptyState'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { ConfettiBurst } from '../components/ConfettiBurst'
+import { ImportSheet } from '../components/ImportSheet'
 import { useAuth } from '../auth/AuthProvider'
 import wc26 from '../assets/wc2026.webp'
 import type { CollectionItem } from '../lib/types'
@@ -19,13 +20,14 @@ type Filter = 'all' | 'missing' | 'spares' | 'complete'
 const INTRO_KEY = 'wc26-seenIntro'
 
 export function CollectionScreen() {
-  const { sections, progress, isLoading } = useCollection()
+  const { items, sections, progress, isLoading } = useCollection()
   const setCount = useSetCount()
   const { signOut } = useAuth()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [actionItem, setActionItem] = useState<CollectionItem | null>(null)
   const [quickAdd, setQuickAdd] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [seenIntro, setSeenIntro] = useState(() => {
     try {
       return localStorage.getItem(INTRO_KEY) === '1'
@@ -125,6 +127,14 @@ export function CollectionScreen() {
             Cupa Mondială 2026
           </p>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              aria-label="Importă din text"
+              className="grid h-9 w-9 place-items-center rounded-full bg-surface-2 text-fg-muted"
+            >
+              <ClipboardPaste size={16} />
+            </button>
             <ThemeToggle />
             <button
               type="button"
@@ -266,6 +276,11 @@ export function CollectionScreen() {
         onClose={() => setQuickAdd(false)}
         sections={sections}
         onSetCount={setCountFn}
+      />
+      <ImportSheet
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        items={items}
       />
       <ConfettiBurst fireKey={confetti} />
     </div>

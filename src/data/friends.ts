@@ -1,24 +1,32 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
+import { getHidden } from '../lib/friends'
 import type { UserStickerRow } from '../lib/types'
 
 export interface FriendProfile {
   id: string
   friend_code: string
   name: string
+  avatar?: string | null
 }
 
-function toProfile(p: {
+const SELECT = 'id, friend_code, display_name, username, avatar_url'
+
+interface ProfileRow {
   id: string
   friend_code: string
   display_name: string | null
   username: string | null
-}): FriendProfile {
+  avatar_url: string | null
+}
+
+function toProfile(p: ProfileRow): FriendProfile {
   return {
     id: p.id,
     friend_code: p.friend_code,
     name: p.display_name || p.username || 'Prieten',
+    avatar: p.avatar_url,
   }
 }
 
@@ -31,11 +39,11 @@ export function useMyProfile() {
     queryFn: async (): Promise<FriendProfile | null> => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, friend_code, display_name, username')
+        .select(SELECT)
         .eq('id', user!.id)
         .single()
       if (error || !data) return null
-      return toProfile(data)
+      return toProfile(data as ProfileRow)
     },
   })
 }
@@ -48,19 +56,18 @@ export async function fetchProfileByCode(
   if (!c) return null
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, friend_code, display_name, username')
+    .select(SELECT)
     .eq('friend_code', c)
     .limit(1)
   if (error || !data || !data.length) return null
-  return toProfile(data[0])
+  return toProfile(data[0] as ProfileRow)
 }
 
-/** A friend's collection rows (read-allowed for signed-in users). */
+/** A friend's collection rows (auto-refreshed). */
 export function useFriendStickers(friendId: string | null) {
   return useQuery({
     queryKey: ['friend_stickers', friendId],
     enabled: Boolean(friendId),
-    // Auto-refresh so a friend's new stickers show up without reloading.
     refetchInterval: 20000,
     refetchOnWindowFocus: true,
     staleTime: 8000,
@@ -73,4 +80,52 @@ export function useFriendStickers(friendId: string | null) {
       return (data ?? []) as UserStickerRow[]
     },
   })
+}
+
+/** Everyone linked to me (either direction) — so adding is mutual. */
+export function useFriends() {
+  const { user } = useAuth()
+  return useQuery({
+    queryKey: ['friends', user?.id],
+    enabled: Boolean(user),
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
+    queryFn: async (): Promise<FriendProfile[]> => {
+      const { data: links } = await supabase
+        .from('friendships')
+        .select('user_id, friend_id')
+        .or(`user_id.eq.${user!.id},friend_id.eq.${user!.id}`)
+      const ids = new Set<string>()
+      for (const l of links ?? [])
+        ids.add(l.user_id === user!.id ? l.friend_id : l.user_id)
+      const hidden = new Set(getHidden())
+      const want = [...ids].filter((id) => id !== user!.id && !hidden.has(id))
+      if (!want.length) return []
+      const { data: profs } = await supabase
+        .from('profiles')
+        .select(SELECT)
+        .in('id', want)
+      return ((profs ?? []) as ProfileRow[]).map(toProfile)
+    },
+  })
+}
+
+export async function addFriendship(friendId: string) {
+  const { data } = await supabase.auth.getUser()
+  const uid = data.user?.id
+  if (!uid || uid === friendId) return
+  await supabase
+    .from('friendships')
+    .upsert({ user_id: uid, friend_id: friendId }, { onConflict: 'user_id,friend_id' })
+}
+
+export async function removeFriendship(friendId: string) {
+  const { data } = await supabase.auth.getUser()
+  const uid = data.user?.id
+  if (!uid) return
+  await supabase
+    .from('friendships')
+    .delete()
+    .eq('user_id', uid)
+    .eq('friend_id', friendId)
 }

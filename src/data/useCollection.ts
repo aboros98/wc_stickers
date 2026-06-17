@@ -118,3 +118,28 @@ export function useSetCount() {
     },
   })
 }
+
+/** Upsert many counts in one go (used by the text importer). */
+export function useBulkSetCount() {
+  const { user } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (ops: { id: number; count: number }[]) => {
+      if (!user || !ops.length) return
+      const rows = ops.map((o) => ({
+        user_id: user.id,
+        sticker_id: o.id,
+        count: Math.max(0, o.count),
+      }))
+      for (let i = 0; i < rows.length; i += 500) {
+        const { error } = await supabase
+          .from('user_stickers')
+          .upsert(rows.slice(i, i + 500), { onConflict: 'user_id,sticker_id' })
+        if (error) throw error
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user_stickers', user?.id] })
+    },
+  })
+}

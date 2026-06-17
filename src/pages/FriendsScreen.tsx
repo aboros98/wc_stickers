@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
 import {
   Copy,
@@ -12,8 +13,16 @@ import {
   ArrowUpRight,
 } from 'lucide-react'
 import { useCollection, useSetCount } from '../data/useCollection'
-import { useMyProfile, fetchProfileByCode, useFriendStickers } from '../data/friends'
-import { getFriends, addFriend, removeFriend, type SavedFriend } from '../lib/friends'
+import {
+  useMyProfile,
+  fetchProfileByCode,
+  useFriendStickers,
+  useFriends,
+  addFriendship,
+  removeFriendship,
+  type FriendProfile,
+} from '../data/friends'
+import { hideFriend, unhideFriend } from '../lib/friends'
 import { copyText, shareText } from '../lib/share'
 import { haptic } from '../lib/haptics'
 import { ActionButton } from '../components/ActionButton'
@@ -23,6 +32,22 @@ import { TileSkeleton } from '../components/TileSkeleton'
 import { QrScannerSheet } from '../components/QrScannerSheet'
 import type { CollectionItem } from '../lib/types'
 
+function Avatar({ name, src }: { name: string; src?: string | null }) {
+  if (src)
+    return (
+      <img
+        src={src}
+        alt=""
+        className="h-11 w-11 rounded-full object-cover ring-1 ring-border"
+      />
+    )
+  return (
+    <div className="grid h-11 w-11 place-items-center rounded-full bg-turquoise/20 font-display text-lg font-bold text-turquoise">
+      {name.charAt(0).toUpperCase()}
+    </div>
+  )
+}
+
 function FriendCard({
   friend,
   myItems,
@@ -30,7 +55,7 @@ function FriendCard({
   onApplyGive,
   onRemove,
 }: {
-  friend: SavedFriend
+  friend: FriendProfile
   myItems: CollectionItem[]
   onApplyGet: (it: CollectionItem) => void
   onApplyGive: (it: CollectionItem) => void
@@ -47,21 +72,23 @@ function FriendCard({
     const give: CollectionItem[] = []
     for (const it of myItems) {
       const theirs = fc.get(it.id) ?? 0
-      if (theirs >= 2 && it.count === 0) get.push(it) // they have spare, I'm missing
-      if (it.count >= 2 && theirs === 0) give.push(it) // I have spare, they're missing
+      if (theirs >= 2 && it.count === 0) get.push(it)
+      if (it.count >= 2 && theirs === 0) give.push(it)
     }
-    const friendHave = rows.filter((r) => r.count >= 1).length
     return {
       get,
       give,
-      friendMissing: myItems.length ? myItems.length - friendHave : 0,
+      friendMissing: myItems.length
+        ? myItems.length - rows.filter((r) => r.count >= 1).length
+        : 0,
       friendDupes: rows.reduce((n, r) => n + Math.max(0, r.count - 1), 0),
     }
   }, [rows, myItems])
 
   return (
     <div className="rounded-[16px] border border-border bg-surface p-4">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-3">
+        <Avatar name={friend.name} src={friend.avatar} />
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -70,7 +97,9 @@ function FriendCard({
           <div className="truncate font-display text-base font-bold">
             {friend.name}
           </div>
-          <div className="text-xs text-fg-muted">cod {friend.code}</div>
+          <div className="text-xs text-fg-muted">
+            {friendMissing} lipsă · {friendDupes} dubluri
+          </div>
         </button>
         <button
           type="button"
@@ -108,9 +137,6 @@ function FriendCard({
               </div>
             </div>
           </button>
-          <p className="mt-2 text-center text-[11px] text-fg-muted">
-            {friend.name}: {friendMissing} lipsă · {friendDupes} dubluri
-          </p>
 
           {open && (
             <div className="mt-4 space-y-4">
@@ -118,28 +144,18 @@ function FriendCard({
                 <div className="mb-2 flex items-center gap-2 text-turquoise">
                   <ArrowDownLeft size={16} />
                   <h3 className="font-display text-sm font-bold">
-                    Iei de la {friend.name} ({get.length})
+                    Iei de la {friend.name}
                   </h3>
                 </div>
-                <MatchGrid
-                  items={get}
-                  onApply={onApplyGet}
-                  empty="Nimic de luat de la el."
-                />
+                <MatchGrid items={get} onApply={onApplyGet} empty="Nimic de luat." />
               </div>
               <div className="h-px bg-border" />
               <div>
                 <div className="mb-2 flex items-center gap-2 text-duplicate">
                   <ArrowUpRight size={16} />
-                  <h3 className="font-display text-sm font-bold">
-                    Îi dai ({give.length})
-                  </h3>
+                  <h3 className="font-display text-sm font-bold">Îi dai</h3>
                 </div>
-                <MatchGrid
-                  items={give}
-                  onApply={onApplyGive}
-                  empty="Nimic de dat."
-                />
+                <MatchGrid items={give} onApply={onApplyGive} empty="Nimic de dat." />
               </div>
               <p className="text-center text-[11px] text-fg-muted">
                 Atinge un abțibild ca să bifezi schimbul.
@@ -156,8 +172,9 @@ export function FriendsScreen() {
   const { items: myItems } = useCollection()
   const setCount = useSetCount()
   const myProfile = useMyProfile()
+  const friendsQ = useFriends()
+  const qc = useQueryClient()
   const { hash } = useLocation()
-  const [friends, setFriends] = useState<SavedFriend[]>(() => getFriends())
   const [input, setInput] = useState('')
   const [scanOpen, setScanOpen] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
@@ -176,20 +193,18 @@ export function FriendsScreen() {
         setMsg('Acesta e codul tău.')
         return
       }
-      if (getFriends().some((f) => f.code === code)) {
-        setMsg('Prieten deja adăugat.')
-        return
-      }
       const p = await fetchProfileByCode(code)
       if (!p) {
         setMsg('Cod negăsit.')
         return
       }
-      setFriends(addFriend({ id: p.id, code: p.friend_code, name: p.name }))
+      unhideFriend(p.id)
+      await addFriendship(p.id)
+      qc.invalidateQueries({ queryKey: ['friends'] })
       setMsg(`${p.name} adăugat!`)
       setInput('')
     },
-    [myCode],
+    [myCode, qc],
   )
 
   useEffect(() => {
@@ -205,10 +220,14 @@ export function FriendsScreen() {
     setCount.mutate({ stickerId: it.id, count: Math.max(0, it.count - 1) })
     haptic('success')
   }
-  const remove = (id: string) => {
-    setFriends(removeFriend(id))
+  const remove = async (id: string) => {
+    hideFriend(id)
     haptic('selection')
+    await removeFriendship(id)
+    qc.invalidateQueries({ queryKey: ['friends'] })
   }
+
+  const friends = friendsQ.data ?? []
 
   return (
     <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
@@ -218,22 +237,23 @@ export function FriendsScreen() {
         </p>
         <h1 className="font-display text-2xl font-extrabold">Prieteni</h1>
         <p className="mt-1 text-sm text-fg-muted">
-          Adaugă un prieten ca să vezi ce poți lua și ce poți da.
+          Adaugă un prieten ca să vedeți, în timp real, ce vă puteți da unul
+          altuia.
         </p>
       </section>
 
       <div className="mb-4 rounded-[16px] border border-border bg-surface p-4 text-center">
-        <h2 className="mb-1 font-display text-base font-bold">Codul tău</h2>
-        <p className="font-display text-2xl font-black tracking-widest text-turquoise">
-          {myCode || '········'}
-        </p>
+        <h2 className="mb-2 font-display text-base font-bold">Codul tău</h2>
         {myLink && (
-          <div className="mx-auto mt-3 inline-block rounded-[12px] bg-white p-3">
-            <QRCodeSVG value={myLink} size={150} bgColor="#ffffff" fgColor="#0A0A0C" />
+          <div className="mx-auto inline-block rounded-[14px] bg-white p-3">
+            <QRCodeSVG value={myLink} size={148} bgColor="#ffffff" fgColor="#0A0A0C" />
           </div>
         )}
-        <p className="mt-2 text-xs text-fg-muted">
-          Prietenul scanează asta ca să vă conectați.
+        <p className="mt-3 font-display text-xl font-black tracking-[0.3em] text-turquoise">
+          {myCode || '········'}
+        </p>
+        <p className="mt-1 text-xs text-fg-muted">
+          Trimite-l unui prieten — când te adaugă, apare automat și la tine.
         </p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <ActionButton
@@ -246,7 +266,9 @@ export function FriendsScreen() {
           </ActionButton>
           <ActionButton
             icon={<Share2 size={16} />}
-            onClick={() => shareText(myLink || myCode, 'Adaugă-mă pe albumul Panini WC2026')}
+            onClick={() =>
+              shareText(myLink || myCode, 'Adaugă-mă pe albumul Panini WC2026')
+            }
           >
             Distribuie
           </ActionButton>
@@ -284,7 +306,9 @@ export function FriendsScreen() {
         {msg && <p className="mt-2 text-center text-sm text-turquoise">{msg}</p>}
       </div>
 
-      {friends.length === 0 ? (
+      {friendsQ.isLoading ? (
+        <TileSkeleton className="h-24 w-full" />
+      ) : friends.length === 0 ? (
         <EmptyState
           title="Niciun prieten încă"
           icon={<Users size={32} className="text-fg-muted" />}
