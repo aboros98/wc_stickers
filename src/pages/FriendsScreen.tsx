@@ -12,7 +12,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
 } from 'lucide-react'
-import { useCollection, useSetCount } from '../data/useCollection'
+import { useCollection, useBulkSetCount } from '../data/useCollection'
 import {
   useMyProfile,
   fetchProfileByCode,
@@ -57,11 +57,13 @@ function FriendCard({
 }: {
   friend: FriendProfile
   myItems: CollectionItem[]
-  onApplyGet: (it: CollectionItem) => void
-  onApplyGive: (it: CollectionItem) => void
+  onApplyGet: (items: CollectionItem[]) => void
+  onApplyGive: (items: CollectionItem[]) => void
   onRemove: (id: string) => void
 }) {
   const [open, setOpen] = useState(false)
+  const [getSel, setGetSel] = useState<Set<number>>(new Set())
+  const [giveSel, setGiveSel] = useState<Set<number>>(new Set())
   const stickers = useFriendStickers(friend.id)
   const rows = stickers.data ?? []
 
@@ -84,6 +86,41 @@ function FriendCard({
       friendDupes: rows.reduce((n, r) => n + Math.max(0, r.count - 1), 0),
     }
   }, [rows, myItems])
+
+  // Selection is derived against the live lists, so it self-prunes when the
+  // friend's collection refetches or items get applied.
+  const getChosen = get.filter((it) => getSel.has(it.id))
+  const giveChosen = give.filter((it) => giveSel.has(it.id))
+  const allGet = get.length > 0 && getChosen.length === get.length
+  const allGive = give.length > 0 && giveChosen.length === give.length
+
+  const toggle = (which: 'get' | 'give', id: number) => {
+    if (which === 'get') {
+      const next = new Set(getSel)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      setGetSel(next)
+    } else {
+      const next = new Set(giveSel)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      setGiveSel(next)
+    }
+    haptic('selection')
+  }
+  const toggleAll = (which: 'get' | 'give') => {
+    if (which === 'get')
+      setGetSel(allGet ? new Set() : new Set(get.map((it) => it.id)))
+    else setGiveSel(allGive ? new Set() : new Set(give.map((it) => it.id)))
+  }
+  const confirmGet = () => {
+    onApplyGet(getChosen)
+    setGetSel(new Set())
+  }
+  const confirmGive = () => {
+    onApplyGive(giveChosen)
+    setGiveSel(new Set())
+  }
 
   return (
     <div className="rounded-[16px] border border-border bg-surface p-4">
@@ -139,26 +176,83 @@ function FriendCard({
           </button>
 
           {open && (
-            <div className="mt-4 space-y-4">
-              <div>
-                <div className="mb-2 flex items-center gap-2 text-turquoise">
-                  <ArrowDownLeft size={16} />
-                  <h3 className="font-display text-sm font-bold">
-                    Iei de la {friend.name}
-                  </h3>
+            <div className="mt-4 space-y-5">
+              <section>
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-turquoise">
+                    <ArrowDownLeft size={16} />
+                    <h3 className="font-display text-sm font-bold">
+                      Iei de la {friend.name}
+                    </h3>
+                  </div>
+                  {get.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => toggleAll('get')}
+                      className="text-xs font-semibold text-turquoise active:opacity-70"
+                    >
+                      {allGet ? 'Niciunul' : 'Tot'}
+                    </button>
+                  )}
                 </div>
-                <MatchGrid items={get} onApply={onApplyGet} empty="Nimic de luat." />
-              </div>
+                <MatchGrid
+                  items={get}
+                  selected={getSel}
+                  onToggle={(id) => toggle('get', id)}
+                  tone="turquoise"
+                  empty="Nimic de luat."
+                />
+                {get.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={!getChosen.length}
+                    onClick={confirmGet}
+                    className="mt-2.5 w-full rounded-[12px] bg-turquoise py-2.5 text-sm font-bold text-black transition active:scale-[0.98] disabled:opacity-40"
+                  >
+                    {getChosen.length ? `Ia ${getChosen.length}` : 'Alege ce iei'}
+                  </button>
+                )}
+              </section>
+
               <div className="h-px bg-border" />
-              <div>
-                <div className="mb-2 flex items-center gap-2 text-duplicate">
-                  <ArrowUpRight size={16} />
-                  <h3 className="font-display text-sm font-bold">Îi dai</h3>
+
+              <section>
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-duplicate">
+                    <ArrowUpRight size={16} />
+                    <h3 className="font-display text-sm font-bold">Îi dai</h3>
+                  </div>
+                  {give.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => toggleAll('give')}
+                      className="text-xs font-semibold text-duplicate active:opacity-70"
+                    >
+                      {allGive ? 'Niciunul' : 'Tot'}
+                    </button>
+                  )}
                 </div>
-                <MatchGrid items={give} onApply={onApplyGive} empty="Nimic de dat." />
-              </div>
+                <MatchGrid
+                  items={give}
+                  selected={giveSel}
+                  onToggle={(id) => toggle('give', id)}
+                  tone="duplicate"
+                  empty="Nimic de dat."
+                />
+                {give.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={!giveChosen.length}
+                    onClick={confirmGive}
+                    className="mt-2.5 w-full rounded-[12px] bg-duplicate py-2.5 text-sm font-bold text-white transition active:scale-[0.98] disabled:opacity-40"
+                  >
+                    {giveChosen.length ? `Dă ${giveChosen.length}` : 'Alege ce dai'}
+                  </button>
+                )}
+              </section>
+
               <p className="text-center text-[11px] text-fg-muted">
-                Atinge un abțibild ca să bifezi schimbul.
+                Atinge abțibildurile, apoi apasă Ia / Dă.
               </p>
             </div>
           )}
@@ -170,7 +264,7 @@ function FriendCard({
 
 export function FriendsScreen() {
   const { items: myItems } = useCollection()
-  const setCount = useSetCount()
+  const bulk = useBulkSetCount()
   const myProfile = useMyProfile()
   const friendsQ = useFriends()
   const qc = useQueryClient()
@@ -212,12 +306,14 @@ export function FriendsScreen() {
     if (m) doAdd(m[1])
   }, [hash, doAdd])
 
-  const applyGet = (it: CollectionItem) => {
-    setCount.mutate({ stickerId: it.id, count: Math.max(it.count, 1) })
+  const applyGet = (its: CollectionItem[]) => {
+    if (!its.length) return
+    bulk.mutate(its.map((it) => ({ id: it.id, count: Math.max(it.count, 1) })))
     haptic('success')
   }
-  const applyGive = (it: CollectionItem) => {
-    setCount.mutate({ stickerId: it.id, count: Math.max(0, it.count - 1) })
+  const applyGive = (its: CollectionItem[]) => {
+    if (!its.length) return
+    bulk.mutate(its.map((it) => ({ id: it.id, count: Math.max(0, it.count - 1) })))
     haptic('success')
   }
   const remove = async (id: string) => {
