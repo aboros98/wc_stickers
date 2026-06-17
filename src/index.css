@@ -181,7 +181,66 @@
 @media (prefers-reduced-motion: reduce) {
   .sticker-flip,
   .foil-sheen::after,
-  .shimmer {
+  .shimmer,
+  .anim-float,
+  .anim-sheen::after,
+  .text-grad-26 {
     animation: none !important;
+  }
+}
+
+.anim-fade-up {
+  animation: fade-up 0.5s ease-out both;
+}
+.anim-float {
+  animation: float 5s ease-in-out infinite;
+}
+.text-grad-26 {
+  background: linear-gradient(90deg, #3cac3b, #2f6fed, #e1b530, #3cac3b);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: grad-pan 6s linear infinite;
+}
+.anim-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.anim-sheen::after {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: linear-gradient(
+    115deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 65%
+  );
+  transform: translateX(-100%);
+  animation: sheen 3.5s ease-in-out infinite;
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@keyframes grad-pan {
+  to {
+    background-position: 220% 0;
   }
 }
