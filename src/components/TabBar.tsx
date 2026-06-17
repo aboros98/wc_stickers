@@ -9,23 +9,23 @@ const tabs = [
   { to: '/share', label: 'Distribuie', Icon: Share2, end: false },
 ]
 
-/** Persistent thumb-reachable bottom navigation. */
+/** Floating glassmorphism bottom navigation. */
 export function TabBar() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-      <ul className="mx-auto flex max-w-2xl">
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <ul className="flex w-full max-w-md items-center justify-around rounded-full border border-white/10 bg-surface/70 px-1.5 py-1.5 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.6)] backdrop-blur-xl">
         {tabs.map(({ to, label, Icon, end }) => (
-          <li key={to} className="flex-1">
+          <li key={to}>
             <NavLink
               to={to}
               end={end}
               className={({ isActive }) =>
-                `flex h-14 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold ${
-                  isActive ? 'text-primary' : 'text-fg-muted'
+                `flex h-12 w-[58px] flex-col items-center justify-center gap-0.5 rounded-full text-[10px] font-semibold transition-colors ${
+                  isActive ? 'bg-primary/15 text-primary' : 'text-fg-muted'
                 }`
               }
             >
-              <Icon size={22} />
+              <Icon size={20} />
               <span>{label}</span>
             </NavLink>
           </li>

@@ -27,7 +27,7 @@ export function ShareScreen() {
   }
 
   return (
-    <div className="px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
+    <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <h1 className="mb-4 font-display text-2xl font-extrabold">
         Distribuie albumul
       </h1>

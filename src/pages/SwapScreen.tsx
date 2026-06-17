@@ -126,7 +126,7 @@ export function SwapScreen() {
   }
 
   return (
-    <div className="px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
+    <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <h1 className="mb-1 font-display text-2xl font-extrabold">Schimb</h1>
       <p className="mb-5 text-sm text-fg-muted">
         Compară dublurile tale cu lista de lipsuri a unui prieten — și invers.

@@ -50,13 +50,14 @@
 
 /* Light theme — manual .light toggle on <html> */
 .light {
-  --color-background: #f6f7f9;
-  --color-surface: #ffffff;
-  --color-surface-2: #eef1f5;
-  --color-border: #e1e5ea;
-  --color-fg: #14161a;
-  --color-fg-muted: #5b616b;
-  --color-missing: #c2c7cf;
+  /* Warm Panini-album cream */
+  --color-background: #f4efe3;
+  --color-surface: #fffdf7;
+  --color-surface-2: #ece5d4;
+  --color-border: #ddd3bd;
+  --color-fg: #1a1712;
+  --color-fg-muted: #6b6357;
+  --color-missing: #c9bfa8;
 }
 
 @layer base {
@@ -183,6 +184,7 @@
   .foil-sheen::after,
   .shimmer,
   .anim-float,
+  .anim-fade-up,
   .anim-sheen::after,
   .text-grad-26 {
     animation: none !important;

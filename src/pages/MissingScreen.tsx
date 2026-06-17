@@ -46,7 +46,7 @@ export function MissingScreen() {
   }
 
   return (
-    <div className="px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
+    <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <header className="mb-4">
         <h1 className="font-display text-3xl font-extrabold tabnum">
           {progress.missing} <span className="text-fg-muted">lipsă</span>

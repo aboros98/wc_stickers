@@ -97,14 +97,8 @@ export function CollectionScreen() {
 
   if (isLoading) {
     return (
-      <div className="px-4 pt-[max(1.25rem,env(safe-area-inset-top))]">
-        <div className="mb-6 flex items-center gap-4">
-          <TileSkeleton className="h-[92px] w-[92px] rounded-full" />
-          <div className="flex-1 space-y-2">
-            <TileSkeleton className="h-5 w-2/3" />
-            <TileSkeleton className="h-3 w-1/2" />
-          </div>
-        </div>
+      <div className="px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <TileSkeleton className="mb-3 h-40 w-full rounded-[20px]" />
         <div className="space-y-2">
           {Array.from({ length: 8 }).map((_, i) => (
             <TileSkeleton key={i} className="h-14 w-full" />
@@ -115,18 +109,14 @@ export function CollectionScreen() {
   }
 
   return (
-    <div className="px-4 pt-1">
-      <header className="sticky top-0 z-30 -mx-4 mb-3 bg-background/90 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
-        <div className="flex items-center gap-4">
-          <ProgressRing value={progress.have} total={progress.total} />
-          <div className="flex-1">
-            <h1 className="font-display text-xl font-extrabold leading-tight">
-              Albumul tău
-            </h1>
-            <p className="text-sm text-fg-muted">
-              {completeCount} echipe complete · {progress.duplicates} dubluri
-            </p>
-          </div>
+    <div className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      {/* WC2026 hero */}
+      <section className="anim-fade-up relative mb-3 overflow-hidden rounded-[20px] border border-border bg-gradient-to-br from-surface-2 to-surface p-4">
+        <div className="anim-float pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-gold/20 blur-2xl" />
+        <div className="relative flex items-start justify-between">
+          <p className="font-display text-[10px] font-bold uppercase tracking-[0.22em] text-gold">
+            Cupa Mondială 2026
+          </p>
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <button
@@ -139,8 +129,25 @@ export function CollectionScreen() {
             </button>
           </div>
         </div>
+        <div className="relative mt-3 flex items-center gap-4">
+          <ProgressRing value={progress.have} total={progress.total} size={108} />
+          <div>
+            <h1 className="font-display text-2xl font-extrabold leading-tight">
+              Albumul tău
+            </h1>
+            <p className="mt-1 text-sm text-fg-muted">
+              {completeCount} echipe complete
+            </p>
+            <p className="text-sm text-fg-muted">
+              {progress.duplicates} dubluri de schimbat
+            </p>
+          </div>
+        </div>
+      </section>
 
-        <div className="mt-3 flex items-center gap-2 rounded-[12px] bg-surface-2 px-3">
+      {/* Sticky search + filters */}
+      <div className="sticky top-0 z-30 -mx-4 mb-3 bg-background/85 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur">
+        <div className="flex items-center gap-2 rounded-full bg-surface-2 px-4">
           <Search size={16} className="text-fg-muted" />
           <input
             value={query}
@@ -152,8 +159,7 @@ export function CollectionScreen() {
             className="h-11 flex-1 bg-transparent text-base outline-none placeholder:text-fg-muted"
           />
         </div>
-
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
           <FilterChip active={filter === 'all'} onClick={() => setFilter('all')}>
             Toate
           </FilterChip>
@@ -179,7 +185,7 @@ export function CollectionScreen() {
             Complete
           </FilterChip>
         </div>
-      </header>
+      </div>
 
       {firstRun && (
         <div className="mb-3 rounded-[16px] bg-surface-2 p-4 text-center">
@@ -239,7 +245,7 @@ export function CollectionScreen() {
         type="button"
         onClick={() => setQuickAdd(true)}
         aria-label="Adăugare rapidă"
-        className="fixed bottom-20 right-4 z-30 grid h-14 w-14 place-items-center rounded-full bg-gold text-black shadow-xl active:scale-95"
+        className="anim-float fixed bottom-24 right-4 z-30 grid h-14 w-14 place-items-center rounded-full bg-gold text-black shadow-[0_10px_30px_-6px_rgba(225,181,48,0.6)] active:scale-95"
       >
         <Plus size={26} />
       </button>

@@ -7,7 +7,7 @@ interface Props {
   onLongPress: (item: CollectionItem) => void
 }
 
-/** Responsive 4/5/6-column portrait grid for one section's slots. */
+/** Responsive 4/5/6-column grid for one section's slots. */
 export function StickerGrid({ items, onSetCount, onLongPress }: Props) {
   return (
     <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-6">
@@ -15,7 +15,6 @@ export function StickerGrid({ items, onSetCount, onLongPress }: Props) {
         <StickerCell
           key={it.id}
           item={it}
-          wide={it.label === 'Team Photo'}
           onSetCount={(c) => onSetCount(it.id, c)}
           onLongPress={onLongPress}
         />
