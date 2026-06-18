@@ -35,7 +35,11 @@ export function StickerActionSheet({ item, onClose, onSetCount }: Props) {
   }
 
   return (
-    <Sheet open={!!item} onClose={onClose}>
+    <Sheet
+      open={!!item}
+      onClose={onClose}
+      label={item ? `Editează ${item.sticker_code}` : 'Editează abțibild'}
+    >
       {item && (
         <>
           <div className="mb-4 flex items-center gap-3">
@@ -91,14 +95,13 @@ export function StickerActionSheet({ item, onClose, onSetCount }: Props) {
                 aria-label="O dublură mai puțin"
                 onClick={() => set(count - 1)}
                 disabled={count <= 1}
-                className="grid h-9 w-9 place-items-center rounded-full bg-surface transition active:scale-90 disabled:opacity-40"
+                className="grid h-11 w-11 place-items-center rounded-full bg-surface transition active:scale-90 disabled:opacity-40"
               >
-                <Minus size={16} />
+                <Minus size={18} />
               </button>
               <span
                 key={spare}
-                className="w-6 text-center tabnum text-lg font-bold"
-                style={{ animation: 'pop 160ms ease-out' }}
+                className="anim-pop w-6 text-center tabnum text-lg font-bold"
               >
                 {spare}
               </span>
@@ -106,9 +109,9 @@ export function StickerActionSheet({ item, onClose, onSetCount }: Props) {
                 type="button"
                 aria-label="O dublură în plus"
                 onClick={() => set(count < 1 ? 2 : count + 1)}
-                className="grid h-9 w-9 place-items-center rounded-full bg-primary text-black transition active:scale-90"
+                className="grid h-11 w-11 place-items-center rounded-full bg-primary text-black transition active:scale-90"
               >
-                <Plus size={16} />
+                <Plus size={18} />
               </button>
             </div>
           </div>

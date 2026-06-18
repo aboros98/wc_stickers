@@ -15,7 +15,7 @@ export function StickerGrid({ items, onSetCount, onLongPress }: Props) {
         <StickerCell
           key={it.id}
           item={it}
-          onSetCount={(c) => onSetCount(it.id, c)}
+          onSetCount={onSetCount}
           onLongPress={onLongPress}
         />
       ))}

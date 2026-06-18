@@ -17,9 +17,11 @@ export function ProgressRing({ value, total, size = 92, stroke = 8 }: Props) {
   return (
     <div
       className="relative grid place-items-center"
+      role="img"
+      aria-label={`${value} din ${total} colectate, ${Math.round(pct * 100)}%`}
       style={{ width: size, height: size }}
     >
-      <svg width={size} height={size} className="-rotate-90">
+      <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -41,7 +43,10 @@ export function ProgressRing({ value, total, size = 92, stroke = 8 }: Props) {
           style={{ transition: 'stroke-dashoffset 600ms ease-out' }}
         />
       </svg>
-      <div className="absolute flex flex-col items-center leading-none">
+      <div
+        className="absolute flex flex-col items-center leading-none"
+        aria-hidden="true"
+      >
         <span className="font-display text-lg font-extrabold tabnum">
           {Math.round(pct * 100)}%
         </span>

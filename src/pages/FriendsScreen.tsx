@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   UserPlus,
@@ -21,7 +21,7 @@ import {
   removeFriendship,
   type FriendProfile,
 } from '../data/friends'
-import { hideFriend } from '../lib/friends'
+import { hideFriend, unhideFriend } from '../lib/friends'
 import { haptic } from '../lib/haptics'
 import { Flag } from '../components/Flag'
 import { Snackbar } from '../components/Snackbar'
@@ -73,7 +73,7 @@ function Avatar({ name, src }: { name: string; src?: string | null }) {
       />
     )
   return (
-    <div className="grid h-11 w-11 place-items-center rounded-full bg-turquoise/20 font-display text-lg font-bold text-turquoise">
+    <div className="grid h-11 w-11 place-items-center rounded-full bg-turquoise/20 font-display text-lg font-bold text-turquoise-text">
       {name.charAt(0).toUpperCase()}
     </div>
   )
@@ -101,11 +101,12 @@ function SwapSection({
   verb: string
   emptyText: string
 }) {
-  const toneText = tone === 'duplicate' ? 'text-duplicate' : 'text-turquoise'
+  const toneText =
+    tone === 'duplicate' ? 'text-duplicate' : 'text-turquoise-text'
   const chipSel =
     tone === 'duplicate'
-      ? 'bg-duplicate/20 ring-duplicate text-duplicate'
-      : 'bg-turquoise/20 ring-turquoise text-turquoise'
+      ? 'bg-duplicate ring-duplicate text-white'
+      : 'bg-turquoise ring-turquoise text-black'
   const applyBg =
     tone === 'duplicate' ? 'bg-duplicate text-white' : 'bg-turquoise text-black'
 
@@ -272,7 +273,7 @@ function FriendCard({
             <div className="mt-0.5 text-xs text-fg-muted">Niciun schimb acum</div>
           ) : (
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-bold">
-              <span className="inline-flex items-center gap-1 text-turquoise">
+              <span className="inline-flex items-center gap-1 text-turquoise-text">
                 <ArrowDownLeft size={13} className="shrink-0" /> {get.length}{' '}
                 primești
               </span>
@@ -371,7 +372,7 @@ function FriendCard({
               <button
                 type="button"
                 onClick={() => setConfirming(true)}
-                className="flex w-full items-center justify-center gap-1.5 text-xs font-semibold text-danger/70 active:opacity-70"
+                className="flex w-full items-center justify-center gap-1.5 text-xs font-semibold text-danger active:opacity-70"
               >
                 <X size={13} /> Șterge prietenul
               </button>
@@ -480,19 +481,31 @@ export function FriendsScreen() {
   const bulk = useBulkSetCount()
   const friendsQ = useFriends()
   const qc = useQueryClient()
-  const { hash } = useLocation()
+  const { hash, pathname } = useLocation()
+  const navigate = useNavigate()
   const { doAdd } = useAddFriend()
   const [undo, setUndo] = useState<{
     ops: { id: number; count: number }[]
     message: string
   } | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Someone opening your share link (".../friends#add=CODE") gets added on land.
+  // Someone opening your share link (".../friends#add=CODE") gets added on land —
+  // report the outcome and clear the hash so a refresh doesn't silently re-run it.
   useEffect(() => {
     const m = hash.match(/add=([A-Za-z0-9]+)/)
-    if (m) doAdd(m[1])
-  }, [hash, doAdd])
+    if (!m) return
+    doAdd(m[1]).then((ok) =>
+      setToast(ok ? 'Prieten adăugat!' : 'Nu am putut adăuga prietenul.'),
+    )
+    navigate(pathname, { replace: true })
+  }, [hash, pathname, doAdd, navigate])
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 4000)
+    return () => clearTimeout(t)
+  }, [toast])
   useEffect(
     () => () => {
       if (undoTimer.current) clearTimeout(undoTimer.current)
@@ -517,7 +530,9 @@ export function FriendsScreen() {
       id: it.id,
       count: it.count,
     }))
-    bulk.mutate(ops)
+    bulk.mutate(ops, {
+      onError: () => setToast('Schimbul nu s-a salvat. Încearcă din nou.'),
+    })
     haptic('success')
     const parts: string[] = []
     if (getItems.length) parts.push(`${getItems.length} primite`)
@@ -536,7 +551,15 @@ export function FriendsScreen() {
   const remove = async (id: string) => {
     hideFriend(id)
     haptic('selection')
-    await removeFriendship(id)
+    // Optimistically drop from the list, roll back if the server delete fails.
+    qc.setQueriesData<FriendProfile[]>({ queryKey: ['friends'] }, (old) =>
+      old ? old.filter((f) => f.id !== id) : old,
+    )
+    const ok = await removeFriendship(id)
+    if (!ok) {
+      unhideFriend(id)
+      setToast('Nu am putut șterge prietenul.')
+    }
     qc.invalidateQueries({ queryKey: ['friends'] })
   }
 
@@ -560,10 +583,16 @@ export function FriendsScreen() {
     }
     for (const f of friends) {
       const fc = haveByFriend.get(f.id)
+      // No rows at all = album unknown / not synced yet. Don't guess they "need"
+      // everything, or we'd offer to give them all our spares (and inflate demand).
+      if (!fc) {
+        map.set(f.id, { get: [], give: [] })
+        continue
+      }
       const get: CollectionItem[] = []
       const give: CollectionItem[] = []
       for (const it of myItems) {
-        const theirs = fc?.get(it.id) ?? 0
+        const theirs = fc.get(it.id) ?? 0
         if (theirs >= 2 && it.count === 0) get.push(it)
         if (it.count >= 2 && theirs === 0) give.push(it)
       }
@@ -615,7 +644,7 @@ export function FriendsScreen() {
           aria-hidden="true"
           className="pointer-events-none absolute -right-2 -top-3 h-24 w-auto opacity-[0.12]"
         />
-        <p className="relative font-display text-[10px] font-bold uppercase tracking-[0.22em] text-turquoise">
+        <p className="relative font-display text-[10px] font-bold uppercase tracking-[0.22em] text-turquoise-text">
           Schimburi live
         </p>
         <h1 className="relative mt-0.5 font-display text-2xl font-extrabold">
@@ -623,8 +652,8 @@ export function FriendsScreen() {
         </h1>
         <p className="relative mt-1 text-sm text-fg-muted">
           {friends.length === 0
-            ? 'Adaugă un prieten ca să vedeți ce vă puteți da.'
-            : 'Vedeți, în timp real, ce vă puteți da unul altuia.'}
+            ? 'Adaugă un prieten ca să vezi ce poți schimba cu el.'
+            : 'Vezi, în timp real, ce poți primi și ce poți da.'}
         </p>
         {friends.length > 0 && (
           <div className="relative mt-3 flex items-center gap-2.5">
@@ -656,7 +685,7 @@ export function FriendsScreen() {
 
       <Link
         to="/friends/add"
-        className="mb-4 flex items-center justify-center gap-2 rounded-[14px] bg-turquoise py-3.5 font-bold text-black transition active:scale-[0.98]"
+        className="mb-4 flex items-center justify-center gap-2 rounded-[12px] bg-primary py-3.5 font-bold text-black transition active:scale-[0.98]"
       >
         <UserPlus size={18} /> Adaugă un prieten
       </Link>
@@ -671,7 +700,7 @@ export function FriendsScreen() {
           icon={<Users size={32} className="text-fg-muted" />}
         >
           Apasă „Adaugă un prieten” ca să-i arăți codul tău sau să-l adaugi pe al
-          lui, și să comparați albumele.
+          lui și să compari albumele.
         </EmptyState>
       ) : (
         <div className="space-y-3">
@@ -688,9 +717,11 @@ export function FriendsScreen() {
         </div>
       )}
 
-      {undo && (
+      {undo ? (
         <Snackbar message={undo.message} actionLabel="Anulează" onAction={onUndo} />
-      )}
+      ) : toast ? (
+        <Snackbar message={toast} />
+      ) : null}
     </div>
   )
 }

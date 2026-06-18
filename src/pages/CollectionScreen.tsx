@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Search, LogOut, X, ClipboardPaste } from 'lucide-react'
 import { useCollection, useSetCount } from '../data/useCollection'
+import type { CollectionItem } from '../lib/types'
 import { ProgressRing } from '../components/ProgressRing'
 import { FilterChip } from '../components/FilterChip'
 import { SectionAccordion } from '../components/SectionAccordion'
 import { StickerActionSheet } from '../components/StickerActionSheet'
-import { QuickAddSheet } from '../components/QuickAddSheet'
 import { TileSkeleton } from '../components/TileSkeleton'
 import { EmptyState } from '../components/EmptyState'
 import { ThemeToggle } from '../components/ThemeToggle'
@@ -19,13 +19,13 @@ type Filter = 'all' | 'missing' | 'spares' | 'complete'
 const INTRO_KEY = 'wc26-seenIntro'
 
 export function CollectionScreen() {
-  const { items, sections, progress, isLoading } = useCollection()
+  const { items, sections, progress, isLoading, error, refetch } =
+    useCollection()
   const setCount = useSetCount()
   const { signOut } = useAuth()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [actionId, setActionId] = useState<number | null>(null)
-  const [quickAdd, setQuickAdd] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [seenIntro, setSeenIntro] = useState(() => {
     try {
@@ -82,8 +82,12 @@ export function CollectionScreen() {
     return secs
   }, [sections, query, filter])
 
-  const setCountFn = (stickerId: number, count: number) =>
-    setCount.mutate({ stickerId, count })
+  const mutateCount = setCount.mutate
+  const setCountFn = useCallback(
+    (stickerId: number, count: number) => mutateCount({ stickerId, count }),
+    [mutateCount],
+  )
+  const openAction = useCallback((it: CollectionItem) => setActionId(it.id), [])
 
   // Re-derive the edited sticker from the live list so the action sheet's count
   // and its steppers reflect each change instead of a stale snapshot.
@@ -121,7 +125,7 @@ export function CollectionScreen() {
 
   if (isLoading) {
     return (
-      <div className="px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+      <div className="px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
         <TileSkeleton className="mb-3 h-40 w-full rounded-[20px]" />
         <div className="space-y-2">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -132,8 +136,30 @@ export function CollectionScreen() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="grid min-h-[60vh] place-items-center px-6 text-center">
+        <div>
+          <h2 className="font-display text-lg font-bold">
+            Nu am putut încărca albumul
+          </h2>
+          <p className="mt-1 text-sm text-fg-muted">
+            Verifică conexiunea și încearcă din nou.
+          </p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="mt-4 rounded-[12px] bg-primary px-5 py-2.5 font-bold text-black active:scale-[0.98]"
+          >
+            Reîncearcă
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
+    <div className="px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
       {/* WC2026 hero */}
       <section className="anim-fade-up relative mb-3 overflow-hidden rounded-[20px] border border-border bg-gradient-to-br from-surface-2 to-surface p-4">
         <div className="anim-float pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-gold/20 blur-2xl" />
@@ -144,26 +170,26 @@ export function CollectionScreen() {
           className="pointer-events-none absolute -right-2 -top-3 h-24 w-auto opacity-[0.12]"
         />
         <div className="relative flex items-start justify-between">
-          <p className="font-display text-[10px] font-bold uppercase tracking-[0.22em] text-gold">
+          <p className="font-display text-[10px] font-bold uppercase tracking-[0.22em] text-gold-text">
             Cupa Mondială 2026
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => setImportOpen(true)}
               aria-label="Importă din text"
-              className="grid h-9 w-9 place-items-center rounded-full bg-surface-2 text-fg-muted"
+              className="grid h-11 w-11 place-items-center rounded-full bg-surface-2 text-fg-muted active:scale-90"
             >
-              <ClipboardPaste size={16} />
+              <ClipboardPaste size={18} />
             </button>
             <ThemeToggle />
             <button
               type="button"
               onClick={signOut}
               aria-label="Deconectare"
-              className="grid h-9 w-9 place-items-center rounded-full bg-surface-2 text-fg-muted"
+              className="grid h-11 w-11 place-items-center rounded-full bg-surface-2 text-fg-muted active:scale-90"
             >
-              <LogOut size={16} />
+              <LogOut size={18} />
             </button>
           </div>
         </div>
@@ -174,7 +200,7 @@ export function CollectionScreen() {
               Albumul tău
             </h1>
             <p
-              className={`mt-1 text-sm font-bold ${albumComplete ? 'text-gold' : 'text-primary'}`}
+              className={`mt-1 text-sm font-bold ${albumComplete ? 'text-gold-text' : 'text-primary-text'}`}
             >
               {cheer}
             </p>
@@ -192,7 +218,7 @@ export function CollectionScreen() {
             />
           </div>
           <div className="mt-1.5 flex justify-between text-[11px] font-semibold">
-            <span className="text-primary">{progress.have} colectate</span>
+            <span className="text-primary-text">{progress.have} colectate</span>
             <span className="text-fg-muted">{progress.missing} rămase</span>
           </div>
         </div>
@@ -244,15 +270,15 @@ export function CollectionScreen() {
         <div className="mb-3 rounded-[16px] bg-surface-2 p-4 text-center">
           <h2 className="font-display text-lg font-bold">Începe albumul</h2>
           <p className="mt-1 text-sm text-fg-muted">
-            Tocmai ai deschis un pachet? Adaugă rapid abțibilduri sau atinge
-            orice slot de mai jos.
+            Tocmai ai deschis un pachet? Lipește lista cu ce ai sau atinge orice
+            slot de mai jos.
           </p>
           <button
             type="button"
-            onClick={() => setQuickAdd(true)}
-            className="mt-3 inline-flex items-center gap-2 rounded-full bg-gold px-4 py-2 font-semibold text-black active:scale-95"
+            onClick={() => setImportOpen(true)}
+            className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 font-semibold text-black active:scale-95"
           >
-            <Plus size={18} /> Adaugă primele abțibilduri
+            <Plus size={18} /> Adaugă din listă
           </button>
         </div>
       )}
@@ -268,9 +294,9 @@ export function CollectionScreen() {
             type="button"
             onClick={dismissIntro}
             aria-label="Închide sfatul"
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-surface-2 text-fg-muted"
+            className="-mr-1 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-2 text-fg-muted active:scale-90"
           >
-            <X size={14} />
+            <X size={16} />
           </button>
         </div>
       )}
@@ -287,7 +313,7 @@ export function CollectionScreen() {
               section={s}
               defaultOpen={autoOpen || (firstRun && idx === 0)}
               onSetCount={setCountFn}
-              onLongPress={(it) => setActionId(it.id)}
+              onLongPress={openAction}
             />
           ))}
         </div>
@@ -296,12 +322,6 @@ export function CollectionScreen() {
       <StickerActionSheet
         item={actionItem}
         onClose={() => setActionId(null)}
-        onSetCount={setCountFn}
-      />
-      <QuickAddSheet
-        open={quickAdd}
-        onClose={() => setQuickAdd(false)}
-        sections={sections}
         onSetCount={setCountFn}
       />
       <ImportSheet

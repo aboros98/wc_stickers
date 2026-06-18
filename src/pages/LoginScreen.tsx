@@ -72,6 +72,18 @@ export function LoginScreen() {
     setBusy(false)
   }
 
+  const onGoogle = async () => {
+    setMsg(null)
+    setInfo(null)
+    setBusy(true)
+    const { error } = await signInWithGoogle()
+    if (error) {
+      setMsg(friendlyError(error))
+      setBusy(false)
+    }
+    // on success a full-page OAuth redirect takes over, so leave busy on
+  }
+
   const swap = () => {
     setMode((m) => (m === 'in' ? 'up' : 'in'))
     setMsg(null)
@@ -91,7 +103,7 @@ export function LoginScreen() {
           alt="Cupa Mondială 2026"
           className="relative mx-auto h-auto w-[112px] drop-shadow-[0_12px_28px_rgba(0,0,0,0.2)]"
         />
-        <p className="relative mt-4 font-display text-[10px] font-bold uppercase tracking-[0.25em] text-gold">
+        <p className="relative mt-4 font-display text-[10px] font-bold uppercase tracking-[0.25em] text-gold-text">
           Cupa Mondială 2026
         </p>
         <h1 className="relative mt-1 font-display text-3xl font-extrabold">
@@ -104,8 +116,9 @@ export function LoginScreen() {
 
       <button
         type="button"
-        onClick={() => signInWithGoogle()}
-        className="anim-fade-up flex w-full items-center justify-center gap-3 rounded-[14px] bg-white py-3.5 text-base font-bold text-[#1f1f1f] shadow-sm ring-1 ring-black/5 active:scale-[0.98]"
+        onClick={onGoogle}
+        disabled={busy}
+        className="anim-fade-up flex w-full items-center justify-center gap-3 rounded-[12px] bg-white py-3.5 text-base font-bold text-[#1f1f1f] shadow-sm ring-1 ring-black/5 transition active:scale-[0.98] disabled:opacity-60"
         style={{ animationDelay: '80ms' }}
       >
         <GoogleIcon /> Continuă cu Google
@@ -154,15 +167,24 @@ export function LoginScreen() {
           className={field}
         />
 
-        {msg && <p className="text-center text-sm font-semibold text-danger">{msg}</p>}
+        {msg && (
+          <p role="alert" className="text-center text-sm font-semibold text-danger">
+            {msg}
+          </p>
+        )}
         {info && (
-          <p className="text-center text-sm font-semibold text-turquoise">{info}</p>
+          <p
+            role="status"
+            className="text-center text-sm font-semibold text-turquoise-text"
+          >
+            {info}
+          </p>
         )}
 
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-[14px] bg-primary py-3.5 text-base font-bold text-black transition active:scale-[0.98] disabled:opacity-50"
+          className="w-full rounded-[12px] bg-primary py-3.5 text-base font-bold text-black transition active:scale-[0.98] disabled:opacity-50"
         >
           {busy ? 'Un moment…' : mode === 'in' ? 'Conectează-te' : 'Creează cont'}
         </button>
@@ -176,12 +198,14 @@ export function LoginScreen() {
         {mode === 'in' ? (
           <>
             N-ai cont?{' '}
-            <span className="font-semibold text-turquoise">Creează unul</span>
+            <span className="font-semibold text-turquoise-text">Creează unul</span>
           </>
         ) : (
           <>
             Ai deja cont?{' '}
-            <span className="font-semibold text-turquoise">Conectează-te</span>
+            <span className="font-semibold text-turquoise-text">
+              Conectează-te
+            </span>
           </>
         )}
       </button>

@@ -60,7 +60,8 @@ export async function fetchProfileByCode(
     .select(SELECT)
     .eq('friend_code', c)
     .limit(1)
-  if (error || !data || !data.length) return null
+  if (error) throw error // network/RLS failure — let the caller report it, not "not found"
+  if (!data || !data.length) return null
   return toProfile(data[0] as ProfileRow)
 }
 
@@ -145,20 +146,23 @@ export async function addFriendship(friendId: string) {
   const { data } = await supabase.auth.getUser()
   const uid = data.user?.id
   if (!uid || uid === friendId) return
-  await supabase
+  const { error } = await supabase
     .from('friendships')
     .upsert({ user_id: uid, friend_id: friendId }, { onConflict: 'user_id,friend_id' })
+  if (error) throw error
 }
 
-export async function removeFriendship(friendId: string) {
+/** Returns true if the server delete succeeded (so the caller can roll back on failure). */
+export async function removeFriendship(friendId: string): Promise<boolean> {
   const { data } = await supabase.auth.getUser()
   const uid = data.user?.id
-  if (!uid) return
-  await supabase
+  if (!uid) return false
+  const { error } = await supabase
     .from('friendships')
     .delete()
     .eq('user_id', uid)
     .eq('friend_id', friendId)
+  return !error
 }
 
 /**
@@ -181,16 +185,21 @@ export function useAddFriend() {
         setMsg('Acesta e codul tău.')
         return false
       }
-      const p = await fetchProfileByCode(code)
-      if (!p) {
-        setMsg('Cod negăsit.')
+      try {
+        const p = await fetchProfileByCode(code)
+        if (!p) {
+          setMsg('Cod negăsit.')
+          return false
+        }
+        unhideFriend(p.id)
+        await addFriendship(p.id)
+        qc.invalidateQueries({ queryKey: ['friends'] })
+        setMsg(`${p.name} adăugat!`)
+        return true
+      } catch {
+        setMsg('Eroare de rețea. Încearcă din nou.')
         return false
       }
-      unhideFriend(p.id)
-      await addFriendship(p.id)
-      qc.invalidateQueries({ queryKey: ['friends'] })
-      setMsg(`${p.name} adăugat!`)
-      return true
     },
     [myCode, qc],
   )

@@ -50,7 +50,7 @@ export function AddFriendScreen() {
             />
           </div>
         )}
-        <p className="mt-3 font-display text-xl font-black tracking-[0.3em] text-turquoise">
+        <p className="mt-3 font-display text-xl font-black tracking-[0.3em] text-turquoise-text">
           {myCode || '········'}
         </p>
         <p className="mt-1 text-xs text-fg-muted">
@@ -108,7 +108,10 @@ export function AddFriendScreen() {
           <ScanLine size={18} /> Scanează codul lui
         </button>
         {msg && (
-          <p className="mt-2 text-center text-sm font-semibold text-turquoise">
+          <p
+            role="status"
+            className="mt-2 text-center text-sm font-semibold text-turquoise-text"
+          >
             {msg}
           </p>
         )}

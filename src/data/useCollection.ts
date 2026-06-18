@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import {
   useMutation,
   useQuery,
@@ -51,17 +52,26 @@ export function useCollection() {
     enabled: Boolean(user),
   })
 
-  const items =
-    catalog.data && userStickers.data
-      ? mergeCollection(catalog.data, userStickers.data)
-      : []
+  const items = useMemo(
+    () =>
+      catalog.data && userStickers.data
+        ? mergeCollection(catalog.data, userStickers.data)
+        : [],
+    [catalog.data, userStickers.data],
+  )
+  const sections = useMemo(() => groupByCountry(items), [items])
+  const progress = useMemo(() => overallProgress(items), [items])
 
   return {
     isLoading: catalog.isLoading || (Boolean(user) && userStickers.isLoading),
     error: catalog.error ?? userStickers.error,
+    refetch: () => {
+      catalog.refetch()
+      userStickers.refetch()
+    },
     items,
-    sections: groupByCountry(items),
-    progress: overallProgress(items),
+    sections,
+    progress,
   }
 }
 
@@ -119,10 +129,12 @@ export function useSetCount() {
   })
 }
 
-/** Upsert many counts in one go (used by the text importer). */
+/** Upsert many counts in one go (text import + trades) with optimistic update. */
 export function useBulkSetCount() {
   const { user } = useAuth()
   const qc = useQueryClient()
+  const key = ['user_stickers', user?.id]
+
   return useMutation({
     mutationFn: async (ops: { id: number; count: number }[]) => {
       if (!user || !ops.length) return
@@ -138,8 +150,32 @@ export function useBulkSetCount() {
         if (error) throw error
       }
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['user_stickers', user?.id] })
+    onMutate: async (ops) => {
+      await qc.cancelQueries({ queryKey: key })
+      const prev = qc.getQueryData<UserStickerRow[]>(key)
+      qc.setQueryData<UserStickerRow[]>(key, (old) => {
+        const rows = old ? [...old] : []
+        for (const o of ops) {
+          const c = Math.max(0, o.count)
+          const idx = rows.findIndex((r) => r.sticker_id === o.id)
+          if (idx >= 0) rows[idx] = { ...rows[idx], count: c }
+          else if (user)
+            rows.push({
+              user_id: user.id,
+              sticker_id: o.id,
+              count: c,
+              updated_at: new Date().toISOString(),
+            })
+        }
+        return rows
+      })
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(key, ctx.prev)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: key })
     },
   })
 }

@@ -15,6 +15,10 @@
   --color-accent: #2a398d; /* WC26 blue */
   --color-accent-bright: #3b5bdb;
   --color-turquoise: #15c1bd; /* turquoise accent (nav / highlights) */
+  /* Accent-as-TEXT variants — darkened under .light so colored text clears AA */
+  --color-turquoise-text: #15c1bd;
+  --color-gold-text: #e1b530;
+  --color-primary-text: #3cac3b;
 
   /* Host / national triad — per-team theming */
   --color-team-red: #e61d25;
@@ -59,6 +63,10 @@
   --color-fg: #1a1712;
   --color-fg-muted: #6b6357;
   --color-missing: #c9bfa8;
+  /* Darkened accent text so colored labels stay readable on cream (>= ~4.5:1) */
+  --color-turquoise-text: #0b736e;
+  --color-gold-text: #7a5d10;
+  --color-primary-text: #2c7a2a;
 }
 
 @layer base {
@@ -81,9 +89,9 @@
     font: inherit;
   }
   :focus-visible {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid var(--color-fg);
     outline-offset: 2px;
-    border-radius: 6px;
+    border-radius: 8px;
   }
 }
 
@@ -187,9 +195,18 @@
   .anim-float,
   .anim-fade-up,
   .anim-sheen::after,
+  .anim-sheet-up,
+  .anim-pop,
   .text-grad-26 {
     animation: none !important;
   }
+}
+
+.anim-sheet-up {
+  animation: sheet-up 220ms ease-out;
+}
+.anim-pop {
+  animation: pop 160ms ease-out;
 }
 
 .anim-fade-up {

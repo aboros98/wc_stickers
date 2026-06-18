@@ -69,7 +69,7 @@ export function ImportSheet({ open, onClose, items }: Props) {
       />
 
       <div className="mb-3 flex justify-between text-xs">
-        <span className="font-semibold text-primary">
+        <span className="font-semibold text-primary-text">
           {result.ops.length} de actualizat
         </span>
         {result.unknown > 0 && (
@@ -110,7 +110,12 @@ export function ImportSheet({ open, onClose, items }: Props) {
         {bulk.isPending ? 'Se aplică…' : `Aplică (${result.ops.length})`}
       </button>
       {msg && (
-        <p className="mt-3 text-center text-sm font-semibold text-primary">{msg}</p>
+        <p
+          role="status"
+          className="mt-3 text-center text-sm font-semibold text-primary-text"
+        >
+          {msg}
+        </p>
       )}
     </Sheet>
   )

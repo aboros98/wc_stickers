@@ -1,4 +1,4 @@
-import { useRef, type PointerEvent as RPointerEvent } from 'react'
+import { memo, useRef, type PointerEvent as RPointerEvent } from 'react'
 import { Check } from 'lucide-react'
 import { Flag } from './Flag'
 import { teamAccent } from '../lib/teamColors'
@@ -8,7 +8,7 @@ import { haptic } from '../lib/haptics'
 
 interface Props {
   item: CollectionItem
-  onSetCount: (count: number) => void
+  onSetCount: (stickerId: number, count: number) => void
   onLongPress: (item: CollectionItem) => void
 }
 
@@ -21,7 +21,7 @@ const MOVE_CANCEL_SQ = 100 // (10px)^2 — a scroll past this cancels the long-p
  * reliable from public data, so we keep the (authoritative) number and only
  * caption the stickers we can trust (emblem / team photo / FWC specials).
  */
-export function StickerCell({ item, onSetCount, onLongPress }: Props) {
+function StickerCellBase({ item, onSetCount, onLongPress }: Props) {
   const status = statusOf(item.count)
   const isFoil = item.type === 'foil' || item.type === 'special'
   const spare = item.count > 1 ? item.count - 1 : 0
@@ -73,7 +73,7 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
     }
     if (item.count === 0) {
       haptic('selection')
-      onSetCount(1) // tap empty → collected
+      onSetCount(item.id, 1) // tap empty → collected
     } else {
       onLongPress(item) // tap owned → open editor (add spares / reset)
     }
@@ -106,12 +106,12 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
         {isBadge ? (
           <Flag code={item.country_code} className="h-8 w-12 opacity-45 grayscale" />
         ) : (
-          <span className="font-display text-[26px] font-black leading-none tabnum text-fg-muted/60">
+          <span className="font-display text-[26px] font-black leading-none tabnum text-fg-muted">
             {big}
           </span>
         )}
         {caption && (
-          <span className="mt-1 line-clamp-2 text-[8.5px] font-medium leading-tight text-fg-muted/55">
+          <span className="mt-1 line-clamp-2 text-[9px] font-medium leading-tight text-fg-muted">
             {caption}
           </span>
         )}
@@ -122,7 +122,7 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
   return (
     <button
       type="button"
-      aria-label={`${label}, ${item.sticker_code}, colectat${spare ? `, ${spare} dublură` : ''} — atinge pentru o dublură, ține apăsat ca să editezi`}
+      aria-label={`${label}, ${item.sticker_code}, colectat${spare ? `, ${spare} dublură` : ''} — atinge ca să editezi`}
       className={`${base} sticker-flip border-transparent shadow-md ${isFoil ? 'foil-sheen' : ''}`}
       style={
         isFoil
@@ -135,7 +135,7 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
       {...handlers}
     >
       <span
-        className="pointer-events-none absolute inset-0 flex items-center justify-center font-display text-[58px] font-black leading-none text-white/[0.035]"
+        className={`pointer-events-none absolute inset-0 flex items-center justify-center font-display text-[58px] font-black leading-none ${isFoil ? 'text-black/[0.06]' : 'text-white/[0.04]'}`}
         aria-hidden="true"
       >
         26
@@ -144,10 +144,7 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
         <Check size={11} strokeWidth={3} />
       </span>
       {spare > 0 && (
-        <span
-          className="absolute bottom-1 right-1 rounded-full bg-duplicate px-1.5 py-0.5 text-[10px] font-bold text-white tabnum"
-          style={{ animation: 'pop 160ms ease-out' }}
-        >
+        <span className="anim-pop absolute bottom-1 right-1 rounded-full bg-duplicate px-1.5 py-0.5 text-[10px] font-bold text-white tabnum">
           +{spare}
         </span>
       )}
@@ -166,7 +163,7 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
       )}
       {caption && (
         <span
-          className={`relative mt-1 line-clamp-2 px-0.5 text-[8.5px] font-semibold leading-tight ${isFoil ? 'text-black/70' : 'text-white/90'}`}
+          className={`relative mt-1 line-clamp-2 px-0.5 text-[9px] font-semibold leading-tight ${isFoil ? 'text-black/70' : 'text-white/90'}`}
         >
           {caption}
         </span>
@@ -174,3 +171,5 @@ export function StickerCell({ item, onSetCount, onLongPress }: Props) {
     </button>
   )
 }
+
+export const StickerCell = memo(StickerCellBase)

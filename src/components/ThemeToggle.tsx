@@ -13,10 +13,10 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-      className="grid h-9 w-9 place-items-center rounded-full bg-surface-2 text-fg"
+      aria-label={theme === 'dark' ? 'Comută pe tema deschisă' : 'Comută pe tema închisă'}
+      className="grid h-11 w-11 place-items-center rounded-full bg-surface-2 text-fg active:scale-90"
     >
-      {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+      {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
     </button>
   )
 }
