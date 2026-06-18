@@ -83,6 +83,36 @@ export function useFriendStickers(friendId: string | null) {
   })
 }
 
+export interface FriendStickerRow {
+  user_id: string
+  sticker_id: number
+  count: number
+}
+
+/**
+ * All friends' OWNED stickers (count ≥ 1) in a single query — used to compute
+ * cross-friend demand for your spares. A friend missing a sticker simply has no
+ * row here, so "wanted by" = friends not present for that sticker_id.
+ */
+export function useFriendsStickers(ids: string[]) {
+  return useQuery({
+    queryKey: ['friends_stickers', [...ids].sort().join(',')],
+    enabled: ids.length > 0,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+    staleTime: 10000,
+    queryFn: async (): Promise<FriendStickerRow[]> => {
+      const { data, error } = await supabase
+        .from('user_stickers')
+        .select('user_id, sticker_id, count')
+        .in('user_id', ids)
+        .gte('count', 1)
+      if (error) throw error
+      return (data ?? []) as FriendStickerRow[]
+    },
+  })
+}
+
 /** Everyone linked to me (either direction) — so adding is mutual. */
 export function useFriends() {
   const { user } = useAuth()

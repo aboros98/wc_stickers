@@ -9,11 +9,14 @@ import {
   ArrowUpRight,
   ArrowLeftRight,
   ChevronDown,
+  ChevronUp,
+  Flame,
   type LucideIcon,
 } from 'lucide-react'
 import { useCollection, useBulkSetCount } from '../data/useCollection'
 import {
   useFriendStickers,
+  useFriendsStickers,
   useFriends,
   useAddFriend,
   removeFriendship,
@@ -409,6 +412,98 @@ function FriendCard({
   )
 }
 
+function MiniAvatar({ name, src }: { name: string; src?: string | null }) {
+  return src ? (
+    <img
+      src={src}
+      alt=""
+      className="h-6 w-6 rounded-full object-cover ring-2 ring-surface"
+    />
+  ) : (
+    <div className="grid h-6 w-6 place-items-center rounded-full bg-turquoise/25 text-[10px] font-bold text-turquoise ring-2 ring-surface">
+      {name.charAt(0).toUpperCase()}
+    </div>
+  )
+}
+
+/** Your spares ranked by how many friends are missing them. */
+function DemandPanel({
+  demand,
+}: {
+  demand: { item: CollectionItem; wanters: FriendProfile[] }[]
+}) {
+  const [open, setOpen] = useState(false)
+  const hot = demand.filter((d) => d.wanters.length >= 2).length
+  const shown = open ? demand : demand.slice(0, 5)
+
+  return (
+    <div className="mb-4 overflow-hidden rounded-[16px] border border-border bg-surface">
+      <div className="flex items-center gap-3 p-4">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold/15 text-gold">
+          <Flame size={18} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-display text-base font-bold">
+            Dublurile tale căutate
+          </div>
+          <div className="text-xs text-fg-muted">
+            {demand.length} cerute de prieteni
+            {hot > 0 && ` · ${hot} de mai mulți`}
+          </div>
+        </div>
+      </div>
+
+      <div className="divide-y divide-border border-t border-border">
+        {shown.map(({ item, wanters }) => (
+          <div key={item.id} className="flex items-center gap-3 px-4 py-2.5">
+            <Flag
+              code={item.country_code}
+              className="h-4 w-6 shrink-0 rounded-[2px] ring-1 ring-black/10"
+            />
+            <span className="font-display text-sm font-bold tabnum">
+              {item.sticker_code}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <div className="flex -space-x-1.5">
+                {wanters.slice(0, 3).map((f) => (
+                  <MiniAvatar key={f.id} name={f.name} src={f.avatar} />
+                ))}
+              </div>
+              <span
+                className={`grid h-6 min-w-[1.5rem] place-items-center rounded-full px-1.5 text-xs font-bold tabnum ${
+                  wanters.length >= 2
+                    ? 'bg-gold/20 text-gold'
+                    : 'bg-surface-2 text-fg-muted'
+                }`}
+              >
+                {wanters.length}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {demand.length > 5 && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex w-full items-center justify-center gap-1 border-t border-border py-2.5 text-xs font-semibold text-turquoise active:opacity-70"
+        >
+          {open ? (
+            <>
+              <ChevronUp size={14} /> Mai puține
+            </>
+          ) : (
+            <>
+              <ChevronDown size={14} /> Vezi toate ({demand.length})
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function FriendsScreen() {
   const { items: myItems } = useCollection()
   const bulk = useBulkSetCount()
@@ -475,6 +570,29 @@ export function FriendsScreen() {
   }
 
   const friends = friendsQ.data ?? []
+  const friendIds = friends.map((f) => f.id)
+  const allFriendStickers = useFriendsStickers(friendIds)
+
+  // For each of MY spares, which friends are missing it (sorted by demand).
+  const demand = useMemo(() => {
+    if (!friends.length) return []
+    const haveByFriend = new Map<string, Set<number>>()
+    for (const r of allFriendStickers.data ?? []) {
+      let s = haveByFriend.get(r.user_id)
+      if (!s) haveByFriend.set(r.user_id, (s = new Set()))
+      s.add(r.sticker_id)
+    }
+    const out: { item: CollectionItem; wanters: FriendProfile[] }[] = []
+    for (const it of myItems) {
+      if (it.count < 2) continue
+      const wanters = friends.filter((f) => !haveByFriend.get(f.id)?.has(it.id))
+      if (wanters.length) out.push({ item: it, wanters })
+    }
+    out.sort(
+      (a, b) => b.wanters.length - a.wanters.length || a.item.id - b.item.id,
+    )
+    return out
+  }, [allFriendStickers.data, myItems, friends])
 
   return (
     <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
@@ -531,6 +649,8 @@ export function FriendsScreen() {
       >
         <UserPlus size={18} /> Adaugă un prieten
       </Link>
+
+      {demand.length > 0 && <DemandPanel demand={demand} />}
 
       {friendsQ.isLoading ? (
         <TileSkeleton className="h-24 w-full" />
