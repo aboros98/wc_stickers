@@ -165,6 +165,68 @@ export async function removeFriendship(friendId: string): Promise<boolean> {
   return !error
 }
 
+export interface TradeRow {
+  id: string
+  from_user: string
+  to_user: string
+  give_ids: number[]
+  take_ids: number[]
+  status: string
+  created_at: string
+}
+
+/** Pending trades I'm part of (incoming + outgoing), auto-refreshed. */
+export function useTrades() {
+  const { user } = useAuth()
+  return useQuery({
+    queryKey: ['trades', user?.id],
+    enabled: Boolean(user),
+    refetchInterval: 20000,
+    refetchOnWindowFocus: true,
+    staleTime: 8000,
+    queryFn: async (): Promise<TradeRow[]> => {
+      const { data, error } = await supabase
+        .from('trades')
+        .select('id, from_user, to_user, give_ids, take_ids, status, created_at')
+        .eq('status', 'pending')
+        .or(`from_user.eq.${user!.id},to_user.eq.${user!.id}`)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []) as TradeRow[]
+    },
+  })
+}
+
+/** Propose a trade to a friend (give = stickers I give them, take = I take from them). */
+export async function proposeTrade(
+  toUser: string,
+  giveIds: number[],
+  takeIds: number[],
+) {
+  const { data } = await supabase.auth.getUser()
+  const uid = data.user?.id
+  if (!uid) throw new Error('Not signed in')
+  const { error } = await supabase.from('trades').insert({
+    from_user: uid,
+    to_user: toUser,
+    give_ids: giveIds,
+    take_ids: takeIds,
+  })
+  if (error) throw error
+}
+
+/** Recipient accepts — both albums update atomically (server-side). */
+export async function acceptTrade(id: string) {
+  const { error } = await supabase.rpc('accept_trade', { p_id: id })
+  if (error) throw error
+}
+
+/** Either party declines/cancels a pending trade. */
+export async function cancelTrade(id: string) {
+  const { error } = await supabase.rpc('cancel_trade', { p_id: id })
+  if (error) throw error
+}
+
 /**
  * Shared "add a friend" flow: accepts a raw code or a share link/hash
  * (e.g. "...#add=74E9D0D4"), links mutually, and reports a status message.

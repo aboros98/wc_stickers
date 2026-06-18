@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -13,18 +13,24 @@ import {
   Flame,
   type LucideIcon,
 } from 'lucide-react'
-import { useCollection, useBulkSetCount } from '../data/useCollection'
+import { useCollection } from '../data/useCollection'
 import {
   useFriendsStickers,
   useFriends,
   useAddFriend,
+  useTrades,
+  proposeTrade,
+  acceptTrade,
+  cancelTrade,
   removeFriendship,
   type FriendProfile,
 } from '../data/friends'
+import { useAuth } from '../auth/AuthProvider'
 import { hideFriend, unhideFriend } from '../lib/friends'
 import { haptic } from '../lib/haptics'
 import { Flag } from '../components/Flag'
 import { Snackbar } from '../components/Snackbar'
+import { TradesPanel } from '../components/TradesPanel'
 import { EmptyState } from '../components/EmptyState'
 import { TileSkeleton } from '../components/TileSkeleton'
 import wc26 from '../assets/wc2026.webp'
@@ -87,8 +93,6 @@ function SwapSection({
   items,
   selected,
   setSelected,
-  onApply,
-  verb,
   emptyText,
 }: {
   title: string
@@ -97,8 +101,6 @@ function SwapSection({
   items: CollectionItem[]
   selected: Set<number>
   setSelected: (s: Set<number>) => void
-  onApply: () => void
-  verb: string
   emptyText: string
 }) {
   const toneText =
@@ -107,8 +109,6 @@ function SwapSection({
     tone === 'duplicate'
       ? 'bg-duplicate ring-duplicate text-white'
       : 'bg-turquoise ring-turquoise text-black'
-  const applyBg =
-    tone === 'duplicate' ? 'bg-duplicate text-white' : 'bg-turquoise text-black'
 
   const chosen = items.filter((it) => selected.has(it.id)).length
   const allSel = items.length > 0 && chosen === items.length
@@ -201,15 +201,6 @@ function SwapSection({
               )
             })}
           </div>
-
-          <button
-            type="button"
-            disabled={!chosen}
-            onClick={onApply}
-            className={`mt-3 w-full rounded-[12px] py-2.5 text-sm font-bold transition active:scale-[0.98] disabled:opacity-40 ${applyBg}`}
-          >
-            {chosen ? `${verb} ${chosen}` : `Alege ce ${verb === 'Ia' ? 'iei' : 'dai'}`}
-          </button>
         </>
       )}
     </section>
@@ -220,13 +211,17 @@ function FriendCard({
   friend,
   trade,
   loading,
-  onApplyTrade,
+  onPropose,
   onRemove,
 }: {
   friend: FriendProfile
   trade: { get: CollectionItem[]; give: CollectionItem[] }
   loading: boolean
-  onApplyTrade: (get: CollectionItem[], give: CollectionItem[]) => void
+  onPropose: (
+    friendId: string,
+    giveItems: CollectionItem[],
+    takeItems: CollectionItem[],
+  ) => void
   onRemove: (id: string) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -239,17 +234,11 @@ function FriendCard({
 
   const getChosen = get.filter((it) => getSel.has(it.id))
   const giveChosen = give.filter((it) => giveSel.has(it.id))
+  const chosenTotal = getChosen.length + giveChosen.length
 
-  const confirmGet = () => {
-    onApplyTrade(getChosen, [])
-    setGetSel(new Set())
-  }
-  const confirmGive = () => {
-    onApplyTrade([], giveChosen)
-    setGiveSel(new Set())
-  }
-  const swapAll = () => {
-    onApplyTrade(get, give)
+  const sendProposal = () => {
+    if (!chosenTotal) return
+    onPropose(friend.id, giveChosen, getChosen)
     setGetSel(new Set())
     setGiveSel(new Set())
   }
@@ -323,24 +312,10 @@ function FriendCard({
             <div className="space-y-5">
               {total === 0 ? (
                 <p className="py-1 text-center text-sm text-fg-muted">
-                  Nimic de schimbat cu {friend.name} acum. Reveniți după ce mai
-                  adăugați abțibilduri.
+                  Nimic de schimbat cu {friend.name} deocamdată.
                 </p>
               ) : (
                 <>
-                  {get.length > 0 && give.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={swapAll}
-                      className="flex w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-r from-turquoise to-duplicate py-3 font-bold text-white transition active:scale-[0.98]"
-                    >
-                      <ArrowLeftRight size={18} /> Schimbă tot
-                      <span className="text-xs font-semibold opacity-90">
-                        ia {get.length} · dă {give.length}
-                      </span>
-                    </button>
-                  )}
-
                   <SwapSection
                     title={`Iei de la ${friend.name}`}
                     Icon={ArrowDownLeft}
@@ -348,8 +323,6 @@ function FriendCard({
                     items={get}
                     selected={getSel}
                     setSelected={setGetSel}
-                    onApply={confirmGet}
-                    verb="Ia"
                     emptyText="Nimic de luat de la el."
                   />
 
@@ -362,10 +335,20 @@ function FriendCard({
                     items={give}
                     selected={giveSel}
                     setSelected={setGiveSel}
-                    onApply={confirmGive}
-                    verb="Dă"
                     emptyText="Nimic de dat acum."
                   />
+
+                  <button
+                    type="button"
+                    disabled={!chosenTotal}
+                    onClick={sendProposal}
+                    className="flex w-full items-center justify-center gap-2 rounded-[12px] bg-primary py-3 font-bold text-black transition active:scale-[0.98] disabled:opacity-40"
+                  >
+                    <ArrowLeftRight size={18} />
+                    {chosenTotal
+                      ? `Propune schimb · iei ${getChosen.length} · dai ${giveChosen.length}`
+                      : 'Alege ce schimbi'}
+                  </button>
                 </>
               )}
 
@@ -478,18 +461,16 @@ function DemandPanel({
 
 export function FriendsScreen() {
   const { items: myItems } = useCollection()
-  const bulk = useBulkSetCount()
+  const { user } = useAuth()
+  const meId = user?.id ?? ''
   const friendsQ = useFriends()
+  const tradesQ = useTrades()
   const qc = useQueryClient()
   const { hash, pathname } = useLocation()
   const navigate = useNavigate()
   const { doAdd } = useAddFriend()
-  const [undo, setUndo] = useState<{
-    ops: { id: number; count: number }[]
-    message: string
-  } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [tradeBusy, setTradeBusy] = useState<string | null>(null)
 
   // Someone opening your share link (".../friends#add=CODE") gets added on land —
   // report the outcome and clear the hash so a refresh doesn't silently re-run it.
@@ -506,46 +487,52 @@ export function FriendsScreen() {
     const t = setTimeout(() => setToast(null), 4000)
     return () => clearTimeout(t)
   }, [toast])
-  useEffect(
-    () => () => {
-      if (undoTimer.current) clearTimeout(undoTimer.current)
-    },
-    [],
-  )
 
-  const flashUndo = (ops: { id: number; count: number }[], message: string) => {
-    if (undoTimer.current) clearTimeout(undoTimer.current)
-    setUndo({ ops, message })
-    undoTimer.current = setTimeout(() => setUndo(null), 6000)
+  const propose = async (
+    friendId: string,
+    giveItems: CollectionItem[],
+    takeItems: CollectionItem[],
+  ) => {
+    try {
+      await proposeTrade(
+        friendId,
+        giveItems.map((it) => it.id),
+        takeItems.map((it) => it.id),
+      )
+      haptic('success')
+      setToast('Propunere trimisă!')
+      qc.invalidateQueries({ queryKey: ['trades'] })
+    } catch {
+      setToast('Nu am putut trimite propunerea.')
+    }
   }
 
-  const applyTrade = (getItems: CollectionItem[], giveItems: CollectionItem[]) => {
-    const ops = [
-      ...getItems.map((it) => ({ id: it.id, count: Math.max(it.count, 1) })),
-      ...giveItems.map((it) => ({ id: it.id, count: Math.max(0, it.count - 1) })),
-    ]
-    if (!ops.length) return
-    // Snapshot the previous counts so the swap is undoable.
-    const prev = [...getItems, ...giveItems].map((it) => ({
-      id: it.id,
-      count: it.count,
-    }))
-    bulk.mutate(ops, {
-      onError: () => setToast('Schimbul nu s-a salvat. Încearcă din nou.'),
-    })
-    haptic('success')
-    const parts: string[] = []
-    if (getItems.length) parts.push(`${getItems.length} primite`)
-    if (giveItems.length) parts.push(`${giveItems.length} date`)
-    flashUndo(prev, parts.join(' · '))
+  const accept = async (id: string) => {
+    setTradeBusy(id)
+    try {
+      await acceptTrade(id)
+      haptic('success')
+      setToast('Schimb finalizat! 🎉')
+      qc.invalidateQueries({ queryKey: ['trades'] })
+      qc.invalidateQueries({ queryKey: ['user_stickers'] })
+      qc.invalidateQueries({ queryKey: ['friends_stickers'] })
+    } catch {
+      setToast('Nu am putut accepta schimbul.')
+    } finally {
+      setTradeBusy(null)
+    }
   }
 
-  const onUndo = () => {
-    if (!undo) return
-    bulk.mutate(undo.ops)
-    haptic('selection')
-    if (undoTimer.current) clearTimeout(undoTimer.current)
-    setUndo(null)
+  const decline = async (id: string) => {
+    setTradeBusy(id)
+    try {
+      await cancelTrade(id)
+      qc.invalidateQueries({ queryKey: ['trades'] })
+    } catch {
+      setToast('Eroare. Încearcă din nou.')
+    } finally {
+      setTradeBusy(null)
+    }
   }
 
   const remove = async (id: string) => {
@@ -634,6 +621,16 @@ export function FriendsScreen() {
     )
   }, [friends, friendTrades])
 
+  const trades = tradesQ.data ?? []
+  const nameOf = (id: string) =>
+    friends.find((f) => f.id === id)?.name ?? 'Prieten'
+  const codeById = useMemo(() => {
+    const m = new Map<number, string>()
+    for (const it of myItems) m.set(it.id, it.sticker_code)
+    return m
+  }, [myItems])
+  const codeOf = (id: number) => codeById.get(id) ?? String(id)
+
   return (
     <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <section className="anim-fade-up relative mb-4 overflow-hidden rounded-[20px] border border-border bg-gradient-to-br from-surface-2 to-surface p-4">
@@ -690,6 +687,18 @@ export function FriendsScreen() {
         <UserPlus size={18} /> Adaugă un prieten
       </Link>
 
+      {trades.length > 0 && (
+        <TradesPanel
+          trades={trades}
+          meId={meId}
+          nameOf={nameOf}
+          codeOf={codeOf}
+          onAccept={accept}
+          onDecline={decline}
+          busyId={tradeBusy}
+        />
+      )}
+
       {demand.length > 0 && <DemandPanel demand={demand} />}
 
       {friendsQ.isLoading ? (
@@ -710,18 +719,14 @@ export function FriendsScreen() {
               friend={f}
               trade={friendTrades.get(f.id) ?? { get: [], give: [] }}
               loading={tradesLoading}
-              onApplyTrade={applyTrade}
+              onPropose={propose}
               onRemove={remove}
             />
           ))}
         </div>
       )}
 
-      {undo ? (
-        <Snackbar message={undo.message} actionLabel="Anulează" onAction={onUndo} />
-      ) : toast ? (
-        <Snackbar message={toast} />
-      ) : null}
+      {toast && <Snackbar message={toast} />}
     </div>
   )
 }
