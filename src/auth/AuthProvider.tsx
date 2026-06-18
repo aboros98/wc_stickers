@@ -18,7 +18,11 @@ interface AuthContextValue {
   session: Session | null
   loading: boolean
   signInWithPassword: (email: string, password: string) => Promise<AuthResult>
-  signUp: (email: string, password: string) => Promise<AuthResult>
+  signUp: (
+    email: string,
+    password: string,
+    name?: string,
+  ) => Promise<{ error: string | null; needsConfirmation: boolean }>
   signInWithMagicLink: (email: string) => Promise<AuthResult>
   signInWithGoogle: () => Promise<AuthResult>
   signOut: () => Promise<void>
@@ -50,9 +54,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         return { error: error?.message ?? null }
       },
-      signUp: async (email, password) => {
-        const { error } = await supabase.auth.signUp({ email, password })
-        return { error: error?.message ?? null }
+      signUp: async (email, password, name) => {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin + import.meta.env.BASE_URL,
+            data: name ? { display_name: name, full_name: name } : undefined,
+          },
+        })
+        return {
+          error: error?.message ?? null,
+          needsConfirmation: !error && !data.session,
+        }
       },
       signInWithMagicLink: async (email) => {
         const { error } = await supabase.auth.signInWithOtp({
