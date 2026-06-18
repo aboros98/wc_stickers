@@ -92,9 +92,9 @@ function StickerCellBase({ item, onSetCount, onLongPress }: Props) {
     onContextMenu: openSheet,
   }
 
-  // The team photo is a landscape sticker in the real album — span 2 slots, wide.
-  const isTeamPhoto = item.country_code !== 'FWC' && item.label === 'Team Photo'
-  const shape = isTeamPhoto ? 'col-span-2 aspect-[16/9]' : 'aspect-[3/4]'
+  // Slot 13 is the landscape team photo in the real album — span 2 slots, wide.
+  const isLandscape = item.country_code !== 'FWC' && item.slot_no === 13
+  const shape = isLandscape ? 'col-span-2 aspect-[16/9]' : 'aspect-[3/4]'
   const base =
     'relative flex select-none flex-col items-center justify-center overflow-hidden rounded-[12px] border px-1 text-center transition-transform active:scale-95'
 
