@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import { ArrowLeft, Copy, Share2, ScanLine, UserPlus } from 'lucide-react'
+import { ArrowLeft, Check, Copy, Share2, ScanLine, UserPlus } from 'lucide-react'
 import { useAddFriend } from '../data/friends'
 import { copyText, shareText } from '../lib/share'
 import { haptic } from '../lib/haptics'
@@ -12,6 +12,15 @@ export function AddFriendScreen() {
   const { doAdd, msg, msgKind, myProfile } = useAddFriend()
   const [input, setInput] = useState('')
   const [scanOpen, setScanOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const onCopy = async () => {
+    if (await copyText(myLink || myCode)) {
+      haptic('success')
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1600)
+    }
+  }
 
   const myCode = myProfile.data?.friend_code ?? ''
   const myLink = myCode
@@ -58,12 +67,10 @@ export function AddFriendScreen() {
         </p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <ActionButton
-            icon={<Copy size={16} />}
-            onClick={async () => {
-              if (await copyText(myLink || myCode)) haptic('success')
-            }}
+            icon={copied ? <Check size={16} /> : <Copy size={16} />}
+            onClick={onCopy}
           >
-            Copiază
+            {copied ? 'Copiat!' : 'Copiază'}
           </ActionButton>
           <ActionButton
             icon={<Share2 size={16} />}
