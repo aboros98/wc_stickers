@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import wc26 from '../assets/wc2026.webp'
 
@@ -56,6 +57,19 @@ export function LoginScreen() {
       >
         <GoogleIcon /> Continuă cu Google
       </button>
+
+      <p
+        className="anim-fade-up mt-6 text-center text-[11px] text-fg-muted/70"
+        style={{ animationDelay: '220ms' }}
+      >
+        <Link to="/privacy" className="underline-offset-2 hover:underline">
+          Confidențialitate
+        </Link>
+        <span className="mx-1.5">·</span>
+        <Link to="/terms" className="underline-offset-2 hover:underline">
+          Termeni
+        </Link>
+      </p>
     </div>
   )
 }
