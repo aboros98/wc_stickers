@@ -173,6 +173,7 @@ export interface TradeRow {
   take_ids: number[]
   status: string
   created_at: string
+  resolved_at?: string | null
 }
 
 /** Pending trades I'm part of (incoming + outgoing), auto-refreshed. */
@@ -191,6 +192,29 @@ export function useTrades() {
         .eq('status', 'pending')
         .or(`from_user.eq.${user!.id},to_user.eq.${user!.id}`)
         .order('created_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []) as TradeRow[]
+    },
+  })
+}
+
+/** Resolved trades (accepted/declined) I'm part of, both directions — for history. */
+export function useTradeHistory() {
+  const { user } = useAuth()
+  return useQuery({
+    queryKey: ['trade_history', user?.id],
+    enabled: Boolean(user),
+    refetchOnWindowFocus: true,
+    queryFn: async (): Promise<TradeRow[]> => {
+      const { data, error } = await supabase
+        .from('trades')
+        .select(
+          'id, from_user, to_user, give_ids, take_ids, status, created_at, resolved_at',
+        )
+        .neq('status', 'pending')
+        .or(`from_user.eq.${user!.id},to_user.eq.${user!.id}`)
+        .order('resolved_at', { ascending: false })
+        .limit(40)
       if (error) throw error
       return (data ?? []) as TradeRow[]
     },

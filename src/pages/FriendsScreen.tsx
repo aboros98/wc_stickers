@@ -19,6 +19,7 @@ import {
   useFriends,
   useAddFriend,
   useTrades,
+  useTradeHistory,
   proposeTrade,
   acceptTrade,
   cancelTrade,
@@ -33,6 +34,7 @@ import { copyText } from '../lib/share'
 import { Flag } from '../components/Flag'
 import { Snackbar } from '../components/Snackbar'
 import { TradesPanel } from '../components/TradesPanel'
+import { TradeHistoryPanel } from '../components/TradeHistoryPanel'
 import { EmptyState } from '../components/EmptyState'
 import { TileSkeleton } from '../components/TileSkeleton'
 import wc26 from '../assets/wc2026.webp'
@@ -474,6 +476,7 @@ export function FriendsScreen() {
   const meId = user?.id ?? ''
   const friendsQ = useFriends()
   const tradesQ = useTrades()
+  const historyQ = useTradeHistory()
   const qc = useQueryClient()
   const { hash, pathname } = useLocation()
   const navigate = useNavigate()
@@ -529,6 +532,7 @@ export function FriendsScreen() {
       haptic('success')
       setToast({ message: 'Schimb finalizat! 🎉' })
       qc.invalidateQueries({ queryKey: ['trades'] })
+      qc.invalidateQueries({ queryKey: ['trade_history'] })
       qc.invalidateQueries({ queryKey: ['user_stickers'] })
       qc.invalidateQueries({ queryKey: ['friends_stickers'] })
     } catch {
@@ -544,6 +548,7 @@ export function FriendsScreen() {
       await cancelTrade(id)
       setToast({ message: 'Propunere refuzată.' })
       qc.invalidateQueries({ queryKey: ['trades'] })
+      qc.invalidateQueries({ queryKey: ['trade_history'] })
     } catch {
       setToast({ message: 'Eroare. Încearcă din nou.' })
     } finally {
@@ -654,6 +659,7 @@ export function FriendsScreen() {
   }, [friends, friendTrades])
 
   const trades = tradesQ.data ?? []
+  const history = historyQ.data ?? []
   const nameOf = (id: string) =>
     friends.find((f) => f.id === id)?.name ?? 'Prieten'
   const codeById = useMemo(() => {
@@ -775,6 +781,17 @@ export function FriendsScreen() {
               onRemove={remove}
             />
           ))}
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div className="mt-4">
+          <TradeHistoryPanel
+            trades={history}
+            meId={meId}
+            nameOf={nameOf}
+            codeOf={codeOf}
+          />
         </div>
       )}
 
