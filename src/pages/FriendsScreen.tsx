@@ -482,6 +482,7 @@ export function FriendsScreen() {
   const navigate = useNavigate()
   const { doAdd, myProfile } = useAddFriend()
   const myCode = myProfile.data?.friend_code ?? ''
+  const [codeCopied, setCodeCopied] = useState(false)
   const [toast, setToast] = useState<{
     message: string
     onUndo?: () => void
@@ -731,7 +732,8 @@ export function FriendsScreen() {
           onClick={async () => {
             if (await copyText(myCode)) {
               haptic('success')
-              setToast({ message: 'Cod copiat!' })
+              setCodeCopied(true)
+              setTimeout(() => setCodeCopied(false), 1600)
             }
           }}
           className="mx-auto -mt-2 mb-4 flex items-center gap-1.5 text-xs font-semibold text-fg-muted active:opacity-70"
@@ -740,7 +742,12 @@ export function FriendsScreen() {
           <span className="font-bold tracking-wider text-turquoise-text">
             {myCode}
           </span>{' '}
-          · Copiază
+          ·{' '}
+          <span
+            className={codeCopied ? 'text-primary-text' : 'text-turquoise-text'}
+          >
+            {codeCopied ? 'Copiat ✓' : 'Copiază'}
+          </span>
         </button>
       )}
 
