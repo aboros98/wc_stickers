@@ -6,7 +6,7 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(getTheme())
   const toggle = () => {
     const next: Theme = theme === 'dark' ? 'light' : 'dark'
-    applyTheme(next)
+    applyTheme(next, true)
     setTheme(next)
   }
   return (

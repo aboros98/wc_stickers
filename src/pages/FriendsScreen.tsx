@@ -8,6 +8,8 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ArrowLeftRight,
+  ChevronDown,
+  ChevronUp,
   type LucideIcon,
 } from 'lucide-react'
 import { useCollection, useBulkSetCount } from '../data/useCollection'
@@ -223,6 +225,7 @@ function FriendCard({
   onRemove: (id: string) => void
 }) {
   const [open, setOpen] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [getSel, setGetSel] = useState<Set<number>>(new Set())
   const [giveSel, setGiveSel] = useState<Set<number>>(new Set())
   const stickers = useFriendStickers(friend.id)
@@ -283,38 +286,82 @@ function FriendCard({
         </button>
         <button
           type="button"
-          onClick={() => onRemove(friend.id)}
+          onClick={() => setConfirming(true)}
           aria-label="Șterge prieten"
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-2 text-fg-muted"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-2 text-fg-muted active:scale-90"
         >
           <X size={14} />
         </button>
       </div>
 
-      {stickers.isLoading ? (
+      {confirming ? (
+        <div className="mt-3 rounded-[12px] border border-danger/30 bg-danger/10 p-3">
+          <p className="font-display text-sm font-bold text-fg">Ești sigur?</p>
+          <p className="mt-0.5 text-xs text-fg-muted">
+            Îl ștergi pe {friend.name} din lista ta de prieteni.
+          </p>
+          <div className="mt-2.5 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              className="flex-1 rounded-[10px] bg-surface-2 py-2 text-sm font-bold active:scale-[0.98]"
+            >
+              Anulează
+            </button>
+            <button
+              type="button"
+              onClick={() => onRemove(friend.id)}
+              className="flex-1 rounded-[10px] bg-danger py-2 text-sm font-bold text-white active:scale-[0.98]"
+            >
+              Șterge
+            </button>
+          </div>
+        </div>
+      ) : stickers.isLoading ? (
         <TileSkeleton className="mt-3 h-12 w-full" />
       ) : (
         <>
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="mt-3 grid w-full grid-cols-2 gap-2 text-center"
+            className="mt-3 w-full"
           >
-            <div className="rounded-[10px] bg-turquoise/15 py-2">
-              <div className="font-display text-2xl font-extrabold tabnum text-turquoise">
-                {get.length}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center justify-center gap-2.5 rounded-[12px] bg-turquoise/15 py-2.5">
+                <ArrowDownLeft size={20} className="shrink-0 text-turquoise" />
+                <div className="text-left">
+                  <div className="font-display text-2xl font-extrabold leading-none tabnum text-turquoise">
+                    {get.length}
+                  </div>
+                  <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
+                    Primești
+                  </div>
+                </div>
               </div>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
-                Primești
+              <div className="flex items-center justify-center gap-2.5 rounded-[12px] bg-duplicate/15 py-2.5">
+                <ArrowUpRight size={20} className="shrink-0 text-duplicate" />
+                <div className="text-left">
+                  <div className="font-display text-2xl font-extrabold leading-none tabnum text-duplicate">
+                    {give.length}
+                  </div>
+                  <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
+                    Dai
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="rounded-[10px] bg-duplicate/15 py-2">
-              <div className="font-display text-2xl font-extrabold tabnum text-duplicate">
-                {give.length}
-              </div>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
-                Dai
-              </div>
+            <div className="mt-2 flex items-center justify-center gap-1 text-[11px] font-semibold text-fg-muted">
+              {open ? (
+                <>
+                  <ChevronUp size={14} /> Ascunde
+                </>
+              ) : get.length || give.length ? (
+                <>
+                  <ChevronDown size={14} /> Vezi schimbul
+                </>
+              ) : (
+                'Nimic de schimbat acum'
+              )}
             </div>
           </button>
 

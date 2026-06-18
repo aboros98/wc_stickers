@@ -4,7 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0B0B0B" />
+    <meta name="theme-color" content="#0A0A0C" />
+    <script>
+      // Dark is the default; apply light pre-paint only if the user chose it.
+      try {
+        if (localStorage.getItem('wc26-theme-v2') === 'light') {
+          document.documentElement.classList.add('light')
+          var m = document.querySelector('meta[name="theme-color"]')
+          if (m) m.setAttribute('content', '#F4EFE3')
+        }
+      } catch (e) {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
