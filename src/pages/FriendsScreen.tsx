@@ -22,6 +22,7 @@ import {
   proposeTrade,
   acceptTrade,
   cancelTrade,
+  addFriendship,
   removeFriendship,
   type FriendProfile,
 } from '../data/friends'
@@ -241,6 +242,7 @@ function FriendCard({
     onPropose(friend.id, giveChosen, getChosen)
     setGetSel(new Set())
     setGiveSel(new Set())
+    setOpen(false) // collapse so attention returns to the pending-trades panel
   }
 
   return (
@@ -469,7 +471,10 @@ export function FriendsScreen() {
   const { hash, pathname } = useLocation()
   const navigate = useNavigate()
   const { doAdd } = useAddFriend()
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{
+    message: string
+    onUndo?: () => void
+  } | null>(null)
   const [tradeBusy, setTradeBusy] = useState<string | null>(null)
 
   // Someone opening your share link (".../friends#add=CODE") gets added on land —
@@ -478,7 +483,9 @@ export function FriendsScreen() {
     const m = hash.match(/add=([A-Za-z0-9]+)/)
     if (!m) return
     doAdd(m[1]).then((ok) =>
-      setToast(ok ? 'Prieten adăugat!' : 'Nu am putut adăuga prietenul.'),
+      setToast({
+        message: ok ? 'Prieten adăugat!' : 'Nu am putut adăuga prietenul.',
+      }),
     )
     navigate(pathname, { replace: true })
   }, [hash, pathname, doAdd, navigate])
@@ -500,10 +507,10 @@ export function FriendsScreen() {
         takeItems.map((it) => it.id),
       )
       haptic('success')
-      setToast('Propunere trimisă!')
+      setToast({ message: 'Propunere trimisă!' })
       qc.invalidateQueries({ queryKey: ['trades'] })
     } catch {
-      setToast('Nu am putut trimite propunerea.')
+      setToast({ message: 'Nu am putut trimite propunerea.' })
     }
   }
 
@@ -512,12 +519,12 @@ export function FriendsScreen() {
     try {
       await acceptTrade(id)
       haptic('success')
-      setToast('Schimb finalizat! 🎉')
+      setToast({ message: 'Schimb finalizat! 🎉' })
       qc.invalidateQueries({ queryKey: ['trades'] })
       qc.invalidateQueries({ queryKey: ['user_stickers'] })
       qc.invalidateQueries({ queryKey: ['friends_stickers'] })
     } catch {
-      setToast('Nu am putut accepta schimbul.')
+      setToast({ message: 'Nu am putut accepta schimbul.' })
     } finally {
       setTradeBusy(null)
     }
@@ -527,15 +534,17 @@ export function FriendsScreen() {
     setTradeBusy(id)
     try {
       await cancelTrade(id)
+      setToast({ message: 'Propunere refuzată.' })
       qc.invalidateQueries({ queryKey: ['trades'] })
     } catch {
-      setToast('Eroare. Încearcă din nou.')
+      setToast({ message: 'Eroare. Încearcă din nou.' })
     } finally {
       setTradeBusy(null)
     }
   }
 
   const remove = async (id: string) => {
+    const name = friendsQ.data?.find((f) => f.id === id)?.name ?? 'Prieten'
     hideFriend(id)
     haptic('selection')
     // Optimistically drop from the list, roll back if the server delete fails.
@@ -543,11 +552,21 @@ export function FriendsScreen() {
       old ? old.filter((f) => f.id !== id) : old,
     )
     const ok = await removeFriendship(id)
+    qc.invalidateQueries({ queryKey: ['friends'] })
     if (!ok) {
       unhideFriend(id)
-      setToast('Nu am putut șterge prietenul.')
+      setToast({ message: 'Nu am putut șterge prietenul.' })
+      return
     }
-    qc.invalidateQueries({ queryKey: ['friends'] })
+    setToast({
+      message: `${name} eliminat`,
+      onUndo: async () => {
+        unhideFriend(id)
+        await addFriendship(id)
+        qc.invalidateQueries({ queryKey: ['friends'] })
+        setToast(null)
+      },
+    })
   }
 
   const friends = friendsQ.data ?? []
@@ -726,7 +745,13 @@ export function FriendsScreen() {
         </div>
       )}
 
-      {toast && <Snackbar message={toast} />}
+      {toast && (
+        <Snackbar
+          message={toast.message}
+          actionLabel={toast.onUndo ? 'Anulează' : undefined}
+          onAction={toast.onUndo}
+        />
+      )}
     </div>
   )
 }

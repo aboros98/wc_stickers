@@ -9,7 +9,7 @@ import { ActionButton } from '../components/ActionButton'
 import { QrScannerSheet } from '../components/QrScannerSheet'
 
 export function AddFriendScreen() {
-  const { doAdd, msg, myProfile } = useAddFriend()
+  const { doAdd, msg, msgKind, myProfile } = useAddFriend()
   const [input, setInput] = useState('')
   const [scanOpen, setScanOpen] = useState(false)
 
@@ -109,8 +109,10 @@ export function AddFriendScreen() {
         </button>
         {msg && (
           <p
-            role="status"
-            className="mt-2 text-center text-sm font-semibold text-turquoise-text"
+            role={msgKind === 'err' ? 'alert' : 'status'}
+            className={`mt-2 text-center text-sm font-semibold ${
+              msgKind === 'err' ? 'text-danger' : 'text-turquoise-text'
+            }`}
           >
             {msg}
           </p>

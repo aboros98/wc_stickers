@@ -29,6 +29,7 @@ export function CollectionScreen() {
   const [actionId, setActionId] = useState<number | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
   const [seenIntro, setSeenIntro] = useState(() => {
     try {
       return localStorage.getItem(INTRO_KEY) === '1'
@@ -162,6 +163,27 @@ export function CollectionScreen() {
 
   return (
     <div className="px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
+      {confirmLogout && (
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-[12px] border border-border bg-surface p-3">
+          <span className="text-sm font-semibold">Te deconectezi?</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmLogout(false)}
+              className="rounded-full bg-surface-2 px-3 py-1.5 text-sm font-bold active:scale-95"
+            >
+              Nu
+            </button>
+            <button
+              type="button"
+              onClick={signOut}
+              className="rounded-full bg-danger px-3 py-1.5 text-sm font-bold text-white active:scale-95"
+            >
+              Da, ieși
+            </button>
+          </div>
+        </div>
+      )}
       {/* WC2026 hero */}
       <section className="anim-fade-up relative mb-3 overflow-hidden rounded-[20px] border border-border bg-gradient-to-br from-surface-2 to-surface p-4">
         <div className="anim-float pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-gold/20 blur-2xl" />
@@ -171,31 +193,15 @@ export function CollectionScreen() {
           aria-hidden="true"
           className="pointer-events-none absolute -right-2 -top-3 h-24 w-auto opacity-[0.12]"
         />
-        <div className="relative flex items-start justify-between">
-          <p className="font-display text-[10px] font-bold uppercase tracking-[0.22em] text-gold-text">
+        <div className="relative flex items-start justify-between gap-2">
+          <p className="min-w-0 flex-1 truncate font-display text-[10px] font-bold uppercase tracking-[0.22em] text-gold-text">
             Cupa Mondială 2026
           </p>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setExportOpen(true)}
-              aria-label="Exportă lista"
-              className="grid h-11 w-11 place-items-center rounded-full bg-surface-2 text-fg-muted active:scale-90"
-            >
-              <Share2 size={18} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setImportOpen(true)}
-              aria-label="Importă din text"
-              className="grid h-11 w-11 place-items-center rounded-full bg-surface-2 text-fg-muted active:scale-90"
-            >
-              <ClipboardPaste size={18} />
-            </button>
+          <div className="flex shrink-0 items-center gap-1.5">
             <ThemeToggle />
             <button
               type="button"
-              onClick={signOut}
+              onClick={() => setConfirmLogout(true)}
               aria-label="Deconectare"
               className="grid h-11 w-11 place-items-center rounded-full bg-surface-2 text-fg-muted active:scale-90"
             >
@@ -231,6 +237,23 @@ export function CollectionScreen() {
             <span className="text-primary-text">{progress.have} colectate</span>
             <span className="text-fg-muted">{progress.missing} rămase</span>
           </div>
+        </div>
+
+        <div className="relative mt-4 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setImportOpen(true)}
+            className="flex items-center justify-center gap-2 rounded-[12px] bg-surface-2 py-2.5 text-sm font-semibold active:scale-[0.98]"
+          >
+            <ClipboardPaste size={16} /> Adaugă din listă
+          </button>
+          <button
+            type="button"
+            onClick={() => setExportOpen(true)}
+            className="flex items-center justify-center gap-2 rounded-[12px] bg-surface-2 py-2.5 text-sm font-semibold active:scale-[0.98]"
+          >
+            <Share2 size={16} /> Trimite lista
+          </button>
         </div>
       </section>
 

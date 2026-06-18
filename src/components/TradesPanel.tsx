@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   ArrowDownLeft,
   ArrowLeftRight,
@@ -66,6 +67,7 @@ export function TradesPanel({
   onDecline,
   busyId,
 }: Props) {
+  const [confirmId, setConfirmId] = useState<string | null>(null)
   return (
     <div className="mb-4 overflow-hidden rounded-[16px] border border-turquoise/40 bg-surface">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
@@ -121,9 +123,36 @@ export function TradesPanel({
                   chip="bg-duplicate/15 text-duplicate"
                 />
               </div>
-              <div className="mt-2.5 flex gap-2">
-                {incoming ? (
-                  <>
+              {incoming ? (
+                confirmId === t.id ? (
+                  <div className="mt-2.5 rounded-[10px] border border-danger/30 bg-danger/10 p-2.5">
+                    <p className="mb-2 text-xs font-semibold text-fg">
+                      Sigur faci schimbul? Nu se poate anula.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => setConfirmId(null)}
+                        className="flex-1 rounded-[10px] bg-surface-2 py-2 text-sm font-bold active:scale-[0.98] disabled:opacity-50"
+                      >
+                        Înapoi
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          onAccept(t.id)
+                          setConfirmId(null)
+                        }}
+                        className="flex flex-1 items-center justify-center gap-1 rounded-[10px] bg-primary py-2 text-sm font-bold text-black active:scale-[0.98] disabled:opacity-50"
+                      >
+                        <Check size={15} /> Da, schimbă
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-2.5 flex gap-2">
                     <button
                       type="button"
                       disabled={busy}
@@ -135,13 +164,15 @@ export function TradesPanel({
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => onAccept(t.id)}
+                      onClick={() => setConfirmId(t.id)}
                       className="flex flex-1 items-center justify-center gap-1 rounded-[10px] bg-primary py-2 text-sm font-bold text-black active:scale-[0.98] disabled:opacity-50"
                     >
                       <Check size={15} /> Acceptă
                     </button>
-                  </>
-                ) : (
+                  </div>
+                )
+              ) : (
+                <div className="mt-2.5 flex gap-2">
                   <button
                     type="button"
                     disabled={busy}
@@ -150,8 +181,8 @@ export function TradesPanel({
                   >
                     <X size={14} /> Anulează propunerea
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )
         })}

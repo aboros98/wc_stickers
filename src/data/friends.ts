@@ -237,6 +237,7 @@ export function useAddFriend() {
   const myProfile = useMyProfile()
   const myCode = myProfile.data?.friend_code ?? ''
   const [msg, setMsg] = useState<string | null>(null)
+  const [msgKind, setMsgKind] = useState<'ok' | 'err'>('ok')
 
   const doAdd = useCallback(
     async (raw: string): Promise<boolean> => {
@@ -245,26 +246,32 @@ export function useAddFriend() {
       if (!code) return false
       if (myCode && code === myCode) {
         setMsg('Acesta e codul tău.')
+        setMsgKind('err')
         return false
       }
       try {
         const p = await fetchProfileByCode(code)
         if (!p) {
-          setMsg('Cod negăsit.')
+          setMsg(
+            'Nu am găsit acest cod. Verifică-l sau cere-i prietenului să-și deschidă contul mai întâi.',
+          )
+          setMsgKind('err')
           return false
         }
         unhideFriend(p.id)
         await addFriendship(p.id)
         qc.invalidateQueries({ queryKey: ['friends'] })
         setMsg(`${p.name} adăugat!`)
+        setMsgKind('ok')
         return true
       } catch {
         setMsg('Eroare de rețea. Încearcă din nou.')
+        setMsgKind('err')
         return false
       }
     },
     [myCode, qc],
   )
 
-  return { doAdd, msg, setMsg, myProfile }
+  return { doAdd, msg, msgKind, setMsg, myProfile }
 }

@@ -69,14 +69,18 @@ export function buildExport(items: CollectionItem[]): {
     if (it.count === 0) add(miss, it.country_code, n)
     else if (it.count >= 2) add(dup, it.country_code, n)
   }
-  const fmt = (map: Map<string, number[]>) =>
-    [...map.entries()]
-      .map(
-        ([code, nums]) =>
-          `${code} - ${[...nums].sort((a, b) => a - b).join(', ')}`,
-      )
-      .join('\n')
-  return { missing: fmt(miss), doubles: fmt(dup) }
+  // Header lines are intentionally non-parseable (the "Î"/year survive no number
+  // check), so the text is self-explanatory yet still re-importable.
+  const fmt = (map: Map<string, number[]>, header: string) => {
+    const lines = [...map.entries()].map(
+      ([code, nums]) => `${code} - ${[...nums].sort((a, b) => a - b).join(', ')}`,
+    )
+    return lines.length ? `${header}\n${lines.join('\n')}` : ''
+  }
+  return {
+    missing: fmt(miss, 'Îmi lipsesc (Panini WC2026):'),
+    doubles: fmt(dup, 'Dubluri de dat (Panini WC2026):'),
+  }
 }
 
 export interface ImportResult {
