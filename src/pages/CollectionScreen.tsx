@@ -42,6 +42,23 @@ export function CollectionScreen() {
     [sections],
   )
 
+  const pct = progress.total
+    ? Math.round((progress.have / progress.total) * 100)
+    : 0
+  const albumComplete = progress.total > 0 && progress.have >= progress.total
+  const cheer =
+    progress.have === 0
+      ? 'Deschide primul pachet!'
+      : albumComplete
+        ? 'Album complet! 🎉'
+        : pct >= 75
+          ? 'Aproape gata!'
+          : pct >= 50
+            ? 'Peste jumătate!'
+            : pct >= 25
+              ? 'Prinde viteză 🔥'
+              : 'Bun început!'
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
     let secs = sections
@@ -150,18 +167,33 @@ export function CollectionScreen() {
             </button>
           </div>
         </div>
-        <div className="relative mt-3 flex items-center gap-4">
-          <ProgressRing value={progress.have} total={progress.total} size={108} />
-          <div>
+        <div className="relative mt-4 flex items-center gap-4">
+          <ProgressRing value={progress.have} total={progress.total} size={104} />
+          <div className="min-w-0 flex-1">
             <h1 className="font-display text-2xl font-extrabold leading-tight">
               Albumul tău
             </h1>
-            <p className="mt-1 text-sm text-fg-muted">
-              {completeCount} echipe complete
+            <p
+              className={`mt-1 text-sm font-bold ${albumComplete ? 'text-gold' : 'text-primary'}`}
+            >
+              {cheer}
             </p>
-            <p className="text-sm text-fg-muted">
-              {progress.duplicates} dubluri de schimbat
+            <p className="mt-0.5 text-xs text-fg-muted">
+              {completeCount} echipe complete · {progress.duplicates} dubluri
             </p>
+          </div>
+        </div>
+
+        <div className="relative mt-4">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
+            <div
+              className={`h-full rounded-full transition-[width] duration-700 ease-out ${albumComplete ? 'bg-gold' : 'bg-primary'}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className="mt-1.5 flex justify-between text-[11px] font-semibold">
+            <span className="text-primary">{progress.have} colectate</span>
+            <span className="text-fg-muted">{progress.missing} rămase</span>
           </div>
         </div>
       </section>
