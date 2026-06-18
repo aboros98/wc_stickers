@@ -15,7 +15,6 @@ import {
 } from 'lucide-react'
 import { useCollection, useBulkSetCount } from '../data/useCollection'
 import {
-  useFriendStickers,
   useFriendsStickers,
   useFriends,
   useAddFriend,
@@ -218,12 +217,14 @@ function SwapSection({
 
 function FriendCard({
   friend,
-  myItems,
+  trade,
+  loading,
   onApplyTrade,
   onRemove,
 }: {
   friend: FriendProfile
-  myItems: CollectionItem[]
+  trade: { get: CollectionItem[]; give: CollectionItem[] }
+  loading: boolean
   onApplyTrade: (get: CollectionItem[], give: CollectionItem[]) => void
   onRemove: (id: string) => void
 }) {
@@ -231,28 +232,9 @@ function FriendCard({
   const [confirming, setConfirming] = useState(false)
   const [getSel, setGetSel] = useState<Set<number>>(new Set())
   const [giveSel, setGiveSel] = useState<Set<number>>(new Set())
-  const stickers = useFriendStickers(friend.id)
-  const rows = stickers.data ?? []
 
-  const { get, give, friendMissing, friendDupes } = useMemo(() => {
-    const fc = new Map<number, number>()
-    for (const r of rows) fc.set(r.sticker_id, r.count)
-    const get: CollectionItem[] = []
-    const give: CollectionItem[] = []
-    for (const it of myItems) {
-      const theirs = fc.get(it.id) ?? 0
-      if (theirs >= 2 && it.count === 0) get.push(it)
-      if (it.count >= 2 && theirs === 0) give.push(it)
-    }
-    return {
-      get,
-      give,
-      friendMissing: myItems.length
-        ? myItems.length - rows.filter((r) => r.count >= 1).length
-        : 0,
-      friendDupes: rows.reduce((n, r) => n + Math.max(0, r.count - 1), 0),
-    }
-  }, [rows, myItems])
+  const { get, give } = trade
+  const total = get.length + give.length
 
   const getChosen = get.filter((it) => getSel.has(it.id))
   const giveChosen = give.filter((it) => giveSel.has(it.id))
@@ -273,140 +255,129 @@ function FriendCard({
 
   return (
     <div className="overflow-hidden rounded-[16px] border border-border bg-surface">
-      <div className="flex items-center gap-2 p-4">
+      {/* Compact tappable summary row */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-3 p-4 text-left transition-colors active:bg-surface-2/50"
+      >
         <Avatar name={friend.name} src={friend.avatar} />
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          disabled={confirming}
-          className="flex min-w-0 flex-1 items-center gap-2 text-left"
-        >
-          <div className="min-w-0 flex-1">
-            <div className="truncate font-display text-base font-bold">
-              {friend.name}
-            </div>
-            <div className="text-xs text-fg-muted">
-              {friendMissing} lipsă · {friendDupes} dubluri
-            </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-display text-base font-bold">
+            {friend.name}
           </div>
-          {!confirming && (
-            <ChevronDown
-              size={20}
-              className={`shrink-0 text-fg-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-            />
+          {loading ? (
+            <div className="mt-1.5 h-3 w-28 animate-pulse rounded-full bg-surface-2" />
+          ) : total === 0 ? (
+            <div className="mt-0.5 text-xs text-fg-muted">Niciun schimb acum</div>
+          ) : (
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-bold">
+              <span className="inline-flex items-center gap-1 text-turquoise">
+                <ArrowDownLeft size={13} className="shrink-0" /> {get.length}{' '}
+                primești
+              </span>
+              <span className="text-border">·</span>
+              <span className="inline-flex items-center gap-1 text-duplicate">
+                <ArrowUpRight size={13} className="shrink-0" /> {give.length} dai
+              </span>
+            </div>
           )}
-        </button>
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
-          aria-label="Șterge prieten"
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-2 text-fg-muted active:scale-90"
-        >
-          <X size={14} />
-        </button>
-      </div>
-
-      {confirming ? (
-        <div className="mx-4 mb-4 rounded-[12px] border border-danger/30 bg-danger/10 p-3">
-          <p className="font-display text-sm font-bold text-fg">Ești sigur?</p>
-          <p className="mt-0.5 text-xs text-fg-muted">
-            Îl ștergi pe {friend.name} din lista ta de prieteni.
-          </p>
-          <div className="mt-2.5 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setConfirming(false)}
-              className="flex-1 rounded-[10px] bg-surface-2 py-2 text-sm font-bold active:scale-[0.98]"
-            >
-              Anulează
-            </button>
-            <button
-              type="button"
-              onClick={() => onRemove(friend.id)}
-              className="flex-1 rounded-[10px] bg-danger py-2 text-sm font-bold text-white active:scale-[0.98]"
-            >
-              Șterge
-            </button>
-          </div>
         </div>
-      ) : stickers.isLoading ? (
-        <div className="px-4 pb-4">
-          <TileSkeleton className="h-14 w-full" />
-        </div>
-      ) : (
-        <>
-          <button
-            type="button"
-            onClick={() => setOpen((o) => !o)}
-            className="grid w-full grid-cols-2 gap-2 px-4 pb-4"
-          >
-            <div className="flex items-center justify-center gap-2.5 rounded-[12px] bg-turquoise/15 py-3">
-              <ArrowDownLeft size={20} className="shrink-0 text-turquoise" />
-              <div className="text-left">
-                <div className="font-display text-2xl font-extrabold leading-none tabnum text-turquoise">
-                  {get.length}
-                </div>
-                <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
-                  Primești
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-center gap-2.5 rounded-[12px] bg-duplicate/15 py-3">
-              <ArrowUpRight size={20} className="shrink-0 text-duplicate" />
-              <div className="text-left">
-                <div className="font-display text-2xl font-extrabold leading-none tabnum text-duplicate">
-                  {give.length}
-                </div>
-                <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
-                  Dai
-                </div>
-              </div>
-            </div>
-          </button>
+        <ChevronDown
+          size={20}
+          className={`shrink-0 text-fg-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
 
-          {open && (
-            <div className="space-y-5 border-t border-border px-4 py-4">
-              {get.length > 0 && give.length > 0 && (
+      {open && (
+        <div className="border-t border-border px-4 py-4">
+          {confirming ? (
+            <div className="rounded-[12px] border border-danger/30 bg-danger/10 p-3">
+              <p className="font-display text-sm font-bold text-fg">
+                Ești sigur?
+              </p>
+              <p className="mt-0.5 text-xs text-fg-muted">
+                Îl ștergi pe {friend.name} din lista ta de prieteni.
+              </p>
+              <div className="mt-2.5 flex gap-2">
                 <button
                   type="button"
-                  onClick={swapAll}
-                  className="flex w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-r from-turquoise to-duplicate py-3 font-bold text-white transition active:scale-[0.98]"
+                  onClick={() => setConfirming(false)}
+                  className="flex-1 rounded-[10px] bg-surface-2 py-2 text-sm font-bold active:scale-[0.98]"
                 >
-                  <ArrowLeftRight size={18} /> Schimbă tot
-                  <span className="text-xs font-semibold opacity-90">
-                    ia {get.length} · dă {give.length}
-                  </span>
+                  Anulează
                 </button>
+                <button
+                  type="button"
+                  onClick={() => onRemove(friend.id)}
+                  className="flex-1 rounded-[10px] bg-danger py-2 text-sm font-bold text-white active:scale-[0.98]"
+                >
+                  Șterge
+                </button>
+              </div>
+            </div>
+          ) : loading ? (
+            <TileSkeleton className="h-20 w-full" />
+          ) : (
+            <div className="space-y-5">
+              {total === 0 ? (
+                <p className="py-1 text-center text-sm text-fg-muted">
+                  Nimic de schimbat cu {friend.name} acum. Reveniți după ce mai
+                  adăugați abțibilduri.
+                </p>
+              ) : (
+                <>
+                  {get.length > 0 && give.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={swapAll}
+                      className="flex w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-r from-turquoise to-duplicate py-3 font-bold text-white transition active:scale-[0.98]"
+                    >
+                      <ArrowLeftRight size={18} /> Schimbă tot
+                      <span className="text-xs font-semibold opacity-90">
+                        ia {get.length} · dă {give.length}
+                      </span>
+                    </button>
+                  )}
+
+                  <SwapSection
+                    title={`Iei de la ${friend.name}`}
+                    Icon={ArrowDownLeft}
+                    tone="turquoise"
+                    items={get}
+                    selected={getSel}
+                    setSelected={setGetSel}
+                    onApply={confirmGet}
+                    verb="Ia"
+                    emptyText="Nimic de luat de la el."
+                  />
+
+                  <div className="h-px bg-border" />
+
+                  <SwapSection
+                    title="Îi dai"
+                    Icon={ArrowUpRight}
+                    tone="duplicate"
+                    items={give}
+                    selected={giveSel}
+                    setSelected={setGiveSel}
+                    onApply={confirmGive}
+                    verb="Dă"
+                    emptyText="Nimic de dat acum."
+                  />
+                </>
               )}
 
-              <SwapSection
-                title={`Iei de la ${friend.name}`}
-                Icon={ArrowDownLeft}
-                tone="turquoise"
-                items={get}
-                selected={getSel}
-                setSelected={setGetSel}
-                onApply={confirmGet}
-                verb="Ia"
-                emptyText="Nimic de luat de la el."
-              />
-
-              <div className="h-px bg-border" />
-
-              <SwapSection
-                title="Îi dai"
-                Icon={ArrowUpRight}
-                tone="duplicate"
-                items={give}
-                selected={giveSel}
-                setSelected={setGiveSel}
-                onApply={confirmGive}
-                verb="Dă"
-                emptyText="Nimic de dat acum."
-              />
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                className="flex w-full items-center justify-center gap-1.5 text-xs font-semibold text-danger/70 active:opacity-70"
+              >
+                <X size={13} /> Șterge prietenul
+              </button>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   )
@@ -572,27 +543,67 @@ export function FriendsScreen() {
   const friends = friendsQ.data ?? []
   const friendIds = friends.map((f) => f.id)
   const allFriendStickers = useFriendsStickers(friendIds)
+  const tradesLoading = allFriendStickers.isLoading && !allFriendStickers.data
 
-  // For each of MY spares, which friends are missing it (sorted by demand).
+  // Compute every friend's get/give from the single shared query.
+  const friendTrades = useMemo(() => {
+    const map = new Map<
+      string,
+      { get: CollectionItem[]; give: CollectionItem[] }
+    >()
+    if (!allFriendStickers.data) return map
+    const haveByFriend = new Map<string, Map<number, number>>()
+    for (const r of allFriendStickers.data) {
+      let m = haveByFriend.get(r.user_id)
+      if (!m) haveByFriend.set(r.user_id, (m = new Map()))
+      m.set(r.sticker_id, r.count)
+    }
+    for (const f of friends) {
+      const fc = haveByFriend.get(f.id)
+      const get: CollectionItem[] = []
+      const give: CollectionItem[] = []
+      for (const it of myItems) {
+        const theirs = fc?.get(it.id) ?? 0
+        if (theirs >= 2 && it.count === 0) get.push(it)
+        if (it.count >= 2 && theirs === 0) give.push(it)
+      }
+      map.set(f.id, { get, give })
+    }
+    return map
+  }, [allFriendStickers.data, myItems, friends])
+
+  // Friends with the most to trade float to the top.
+  const sortedFriends = useMemo(
+    () =>
+      [...friends].sort((a, b) => {
+        const ta = friendTrades.get(a.id)
+        const tb = friendTrades.get(b.id)
+        const sa = ta ? ta.get.length + ta.give.length : 0
+        const sb = tb ? tb.get.length + tb.give.length : 0
+        return sb - sa || a.name.localeCompare(b.name)
+      }),
+    [friends, friendTrades],
+  )
+
+  // Your spares ranked by how many friends are missing them (= their "give").
   const demand = useMemo(() => {
-    if (!friends.length) return []
-    const haveByFriend = new Map<string, Set<number>>()
-    for (const r of allFriendStickers.data ?? []) {
-      let s = haveByFriend.get(r.user_id)
-      if (!s) haveByFriend.set(r.user_id, (s = new Set()))
-      s.add(r.sticker_id)
+    const byItem = new Map<
+      number,
+      { item: CollectionItem; wanters: FriendProfile[] }
+    >()
+    for (const f of friends) {
+      const t = friendTrades.get(f.id)
+      if (!t) continue
+      for (const it of t.give) {
+        let e = byItem.get(it.id)
+        if (!e) byItem.set(it.id, (e = { item: it, wanters: [] }))
+        e.wanters.push(f)
+      }
     }
-    const out: { item: CollectionItem; wanters: FriendProfile[] }[] = []
-    for (const it of myItems) {
-      if (it.count < 2) continue
-      const wanters = friends.filter((f) => !haveByFriend.get(f.id)?.has(it.id))
-      if (wanters.length) out.push({ item: it, wanters })
-    }
-    out.sort(
+    return [...byItem.values()].sort(
       (a, b) => b.wanters.length - a.wanters.length || a.item.id - b.item.id,
     )
-    return out
-  }, [allFriendStickers.data, myItems, friends])
+  }, [friends, friendTrades])
 
   return (
     <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
@@ -664,11 +675,12 @@ export function FriendsScreen() {
         </EmptyState>
       ) : (
         <div className="space-y-3">
-          {friends.map((f) => (
+          {sortedFriends.map((f) => (
             <FriendCard
               key={f.id}
               friend={f}
-              myItems={myItems}
+              trade={friendTrades.get(f.id) ?? { get: [], give: [] }}
+              loading={tradesLoading}
               onApplyTrade={applyTrade}
               onRemove={remove}
             />
