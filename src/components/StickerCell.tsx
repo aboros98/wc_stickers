@@ -92,15 +92,18 @@ function StickerCellBase({ item, onSetCount, onLongPress }: Props) {
     onContextMenu: openSheet,
   }
 
+  // The team photo is a landscape sticker in the real album — span 2 slots, wide.
+  const isTeamPhoto = item.country_code !== 'FWC' && item.label === 'Team Photo'
+  const shape = isTeamPhoto ? 'col-span-2 aspect-[16/9]' : 'aspect-[3/4]'
   const base =
-    'relative flex aspect-[3/4] select-none flex-col items-center justify-center overflow-hidden rounded-[12px] border px-1 text-center transition-transform active:scale-95'
+    'relative flex select-none flex-col items-center justify-center overflow-hidden rounded-[12px] border px-1 text-center transition-transform active:scale-95'
 
   if (status === 'missing') {
     return (
       <button
         type="button"
         aria-label={`${label}, ${item.sticker_code}, lipsă — atinge ca să-l colectezi`}
-        className={`${base} border-2 border-dashed border-missing/40 bg-surface-2`}
+        className={`${base} ${shape} border-2 border-dashed border-missing/40 bg-surface-2`}
         {...handlers}
       >
         {isBadge ? (
@@ -123,7 +126,7 @@ function StickerCellBase({ item, onSetCount, onLongPress }: Props) {
     <button
       type="button"
       aria-label={`${label}, ${item.sticker_code}, colectat${spare ? `, ${spare} dublură` : ''} — atinge ca să editezi`}
-      className={`${base} sticker-flip border-transparent shadow-md ${isFoil ? 'foil-sheen' : ''}`}
+      className={`${base} ${shape} sticker-flip border-transparent shadow-md ${isFoil ? 'foil-sheen' : ''}`}
       style={
         isFoil
           ? {

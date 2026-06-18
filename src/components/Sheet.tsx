@@ -69,7 +69,7 @@ export function Sheet({ open, onClose, title, label, children }: Props) {
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="anim-sheet-up relative z-10 w-full max-w-2xl rounded-t-[24px] border-t border-border bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl outline-none"
+        className="anim-sheet-up relative z-10 max-h-[88dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-t-[24px] border-t border-border bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl outline-none"
       >
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
         {title && (

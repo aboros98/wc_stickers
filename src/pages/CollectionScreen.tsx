@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plus, Search, LogOut, X, ClipboardPaste } from 'lucide-react'
+import { Plus, Search, LogOut, X, ClipboardPaste, Share2 } from 'lucide-react'
 import { useCollection, useSetCount } from '../data/useCollection'
 import type { CollectionItem } from '../lib/types'
 import { ProgressRing } from '../components/ProgressRing'
@@ -11,6 +11,7 @@ import { EmptyState } from '../components/EmptyState'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { ConfettiBurst } from '../components/ConfettiBurst'
 import { ImportSheet } from '../components/ImportSheet'
+import { ExportSheet } from '../components/ExportSheet'
 import { useAuth } from '../auth/AuthProvider'
 import wc26 from '../assets/wc2026.webp'
 
@@ -27,6 +28,7 @@ export function CollectionScreen() {
   const [filter, setFilter] = useState<Filter>('all')
   const [actionId, setActionId] = useState<number | null>(null)
   const [importOpen, setImportOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   const [seenIntro, setSeenIntro] = useState(() => {
     try {
       return localStorage.getItem(INTRO_KEY) === '1'
@@ -174,6 +176,14 @@ export function CollectionScreen() {
             Cupa Mondială 2026
           </p>
           <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setExportOpen(true)}
+              aria-label="Exportă lista"
+              className="grid h-11 w-11 place-items-center rounded-full bg-surface-2 text-fg-muted active:scale-90"
+            >
+              <Share2 size={18} />
+            </button>
             <button
               type="button"
               onClick={() => setImportOpen(true)}
@@ -327,6 +337,11 @@ export function CollectionScreen() {
       <ImportSheet
         open={importOpen}
         onClose={() => setImportOpen(false)}
+        items={items}
+      />
+      <ExportSheet
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
         items={items}
       />
       <ConfettiBurst fireKey={confetti} />
