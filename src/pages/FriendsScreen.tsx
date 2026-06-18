@@ -9,7 +9,6 @@ import {
   ArrowUpRight,
   ArrowLeftRight,
   ChevronDown,
-  ChevronUp,
   type LucideIcon,
 } from 'lucide-react'
 import { useCollection, useBulkSetCount } from '../data/useCollection'
@@ -26,6 +25,7 @@ import { Flag } from '../components/Flag'
 import { Snackbar } from '../components/Snackbar'
 import { EmptyState } from '../components/EmptyState'
 import { TileSkeleton } from '../components/TileSkeleton'
+import wc26 from '../assets/wc2026.webp'
 import type { CollectionItem } from '../lib/types'
 
 /** The number shown on a chip — slot number for teams, the FWC index for specials. */
@@ -269,20 +269,29 @@ function FriendCard({
   }
 
   return (
-    <div className="rounded-[16px] border border-border bg-surface p-4">
-      <div className="flex items-center gap-3">
+    <div className="overflow-hidden rounded-[16px] border border-border bg-surface">
+      <div className="flex items-center gap-2 p-4">
         <Avatar name={friend.name} src={friend.avatar} />
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className="min-w-0 flex-1 text-left"
+          disabled={confirming}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
         >
-          <div className="truncate font-display text-base font-bold">
-            {friend.name}
+          <div className="min-w-0 flex-1">
+            <div className="truncate font-display text-base font-bold">
+              {friend.name}
+            </div>
+            <div className="text-xs text-fg-muted">
+              {friendMissing} lipsă · {friendDupes} dubluri
+            </div>
           </div>
-          <div className="text-xs text-fg-muted">
-            {friendMissing} lipsă · {friendDupes} dubluri
-          </div>
+          {!confirming && (
+            <ChevronDown
+              size={20}
+              className={`shrink-0 text-fg-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            />
+          )}
         </button>
         <button
           type="button"
@@ -295,7 +304,7 @@ function FriendCard({
       </div>
 
       {confirming ? (
-        <div className="mt-3 rounded-[12px] border border-danger/30 bg-danger/10 p-3">
+        <div className="mx-4 mb-4 rounded-[12px] border border-danger/30 bg-danger/10 p-3">
           <p className="font-display text-sm font-bold text-fg">Ești sigur?</p>
           <p className="mt-0.5 text-xs text-fg-muted">
             Îl ștergi pe {friend.name} din lista ta de prieteni.
@@ -318,55 +327,42 @@ function FriendCard({
           </div>
         </div>
       ) : stickers.isLoading ? (
-        <TileSkeleton className="mt-3 h-12 w-full" />
+        <div className="px-4 pb-4">
+          <TileSkeleton className="h-14 w-full" />
+        </div>
       ) : (
         <>
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="mt-3 w-full"
+            className="grid w-full grid-cols-2 gap-2 px-4 pb-4"
           >
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex items-center justify-center gap-2.5 rounded-[12px] bg-turquoise/15 py-2.5">
-                <ArrowDownLeft size={20} className="shrink-0 text-turquoise" />
-                <div className="text-left">
-                  <div className="font-display text-2xl font-extrabold leading-none tabnum text-turquoise">
-                    {get.length}
-                  </div>
-                  <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
-                    Primești
-                  </div>
+            <div className="flex items-center justify-center gap-2.5 rounded-[12px] bg-turquoise/15 py-3">
+              <ArrowDownLeft size={20} className="shrink-0 text-turquoise" />
+              <div className="text-left">
+                <div className="font-display text-2xl font-extrabold leading-none tabnum text-turquoise">
+                  {get.length}
                 </div>
-              </div>
-              <div className="flex items-center justify-center gap-2.5 rounded-[12px] bg-duplicate/15 py-2.5">
-                <ArrowUpRight size={20} className="shrink-0 text-duplicate" />
-                <div className="text-left">
-                  <div className="font-display text-2xl font-extrabold leading-none tabnum text-duplicate">
-                    {give.length}
-                  </div>
-                  <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
-                    Dai
-                  </div>
+                <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
+                  Primești
                 </div>
               </div>
             </div>
-            <div className="mt-2 flex items-center justify-center gap-1 text-[11px] font-semibold text-fg-muted">
-              {open ? (
-                <>
-                  <ChevronUp size={14} /> Ascunde
-                </>
-              ) : get.length || give.length ? (
-                <>
-                  <ChevronDown size={14} /> Vezi schimbul
-                </>
-              ) : (
-                'Nimic de schimbat acum'
-              )}
+            <div className="flex items-center justify-center gap-2.5 rounded-[12px] bg-duplicate/15 py-3">
+              <ArrowUpRight size={20} className="shrink-0 text-duplicate" />
+              <div className="text-left">
+                <div className="font-display text-2xl font-extrabold leading-none tabnum text-duplicate">
+                  {give.length}
+                </div>
+                <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
+                  Dai
+                </div>
+              </div>
             </div>
           </button>
 
           {open && (
-            <div className="mt-4 space-y-5">
+            <div className="space-y-5 border-t border-border px-4 py-4">
               {get.length > 0 && give.length > 0 && (
                 <button
                   type="button"
@@ -482,14 +478,51 @@ export function FriendsScreen() {
 
   return (
     <div className="anim-fade-up px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <section className="mb-4 overflow-hidden rounded-[20px] border border-border bg-gradient-to-br from-surface-2 to-surface p-4">
-        <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-fg-muted">
+      <section className="anim-fade-up relative mb-4 overflow-hidden rounded-[20px] border border-border bg-gradient-to-br from-surface-2 to-surface p-4">
+        <div className="anim-float pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-turquoise/20 blur-2xl" />
+        <img
+          src={wc26}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-2 -top-3 h-24 w-auto opacity-[0.12]"
+        />
+        <p className="relative font-display text-[10px] font-bold uppercase tracking-[0.22em] text-turquoise">
           Schimburi live
         </p>
-        <h1 className="font-display text-2xl font-extrabold">Prieteni</h1>
-        <p className="mt-1 text-sm text-fg-muted">
-          Vedeți, în timp real, ce vă puteți da unul altuia.
+        <h1 className="relative mt-0.5 font-display text-2xl font-extrabold">
+          Prieteni
+        </h1>
+        <p className="relative mt-1 text-sm text-fg-muted">
+          {friends.length === 0
+            ? 'Adaugă un prieten ca să vedeți ce vă puteți da.'
+            : 'Vedeți, în timp real, ce vă puteți da unul altuia.'}
         </p>
+        {friends.length > 0 && (
+          <div className="relative mt-3 flex items-center gap-2.5">
+            <div className="flex -space-x-2.5">
+              {friends.slice(0, 5).map((f) =>
+                f.avatar ? (
+                  <img
+                    key={f.id}
+                    src={f.avatar}
+                    alt=""
+                    className="h-8 w-8 rounded-full object-cover ring-2 ring-surface"
+                  />
+                ) : (
+                  <div
+                    key={f.id}
+                    className="grid h-8 w-8 place-items-center rounded-full bg-turquoise/25 font-display text-xs font-bold text-turquoise ring-2 ring-surface"
+                  >
+                    {f.name.charAt(0).toUpperCase()}
+                  </div>
+                ),
+              )}
+            </div>
+            <span className="text-sm font-semibold text-fg-muted">
+              {friends.length} {friends.length === 1 ? 'prieten' : 'prieteni'}
+            </span>
+          </div>
+        )}
       </section>
 
       <Link
