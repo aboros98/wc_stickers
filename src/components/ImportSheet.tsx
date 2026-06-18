@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Sheet } from './Sheet'
+import { Flag } from './Flag'
 import { haptic } from '../lib/haptics'
 import { parseAlbumText, buildImport } from '../lib/parseImport'
 import { useBulkSetCount } from '../data/useCollection'
@@ -16,7 +18,25 @@ export function ImportSheet({ open, onClose, items }: Props) {
   const [have, setHave] = useState('')
   const [dbl, setDbl] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
+  const [showCodes, setShowCodes] = useState(false)
   const bulk = useBulkSetCount()
+
+  // One row per country, in album order, for the in-sheet code reference.
+  const teams = useMemo(() => {
+    const seen = new Set<string>()
+    const out: { code: string; name: string }[] = []
+    for (const it of items) {
+      if (seen.has(it.country_code)) continue
+      seen.add(it.country_code)
+      out.push({
+        code: it.country_code,
+        name:
+          it.country ??
+          (it.country_code === 'FWC' ? 'Speciale (sclipici)' : it.country_code),
+      })
+    }
+    return out
+  }, [items])
 
   const result = useMemo(
     () => buildImport(items, parseAlbumText(have), parseAlbumText(dbl)),
@@ -39,12 +59,37 @@ export function ImportSheet({ open, onClose, items }: Props) {
 
   return (
     <Sheet open={open} onClose={onClose} title="Importă din text">
-      <p className="mb-3 text-sm text-fg-muted">
-        O linie per echipă, cu codul:{' '}
+      <p className="mb-2 text-sm text-fg-muted">
+        O linie per echipă, cu codul de 3 litere:{' '}
         <span className="text-fg">MEX - 1, 2, 3</span> sau{' '}
-        <span className="text-fg">ARG: 1-20</span>. Pentru speciale:{' '}
-        <span className="text-fg">FWC - 1, 2</span>.
+        <span className="text-fg">ARG: 1-20</span>. Pentru abțibildurile
+        speciale (sclipici/logo): <span className="text-fg">FWC - 1, 2</span>.
       </p>
+
+      <button
+        type="button"
+        onClick={() => setShowCodes((s) => !s)}
+        className="mb-3 flex items-center gap-1 text-xs font-semibold text-turquoise-text active:opacity-70"
+      >
+        {showCodes ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        {showCodes ? 'Ascunde codurile' : 'Nu știi codul? Vezi codurile echipelor'}
+      </button>
+      {showCodes && (
+        <div className="mb-3 max-h-44 overflow-auto rounded-[12px] border border-border bg-surface-2 p-2.5">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+            {teams.map((t) => (
+              <div key={t.code} className="flex items-center gap-1.5 text-xs">
+                <Flag
+                  code={t.code}
+                  className="h-2.5 w-4 shrink-0 rounded-[2px] ring-1 ring-black/10"
+                />
+                <span className="truncate text-fg-muted">{t.name}</span>
+                <span className="ml-auto font-bold tabnum text-fg">{t.code}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-fg-muted">
         Le am (în album)

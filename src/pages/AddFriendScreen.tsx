@@ -122,9 +122,9 @@ export function AddFriendScreen() {
       <QrScannerSheet
         open={scanOpen}
         onClose={() => setScanOpen(false)}
-        onResult={(text) => {
+        onResult={async (text) => {
           setScanOpen(false)
-          doAdd(text)
+          if (await doAdd(text)) haptic('success')
         }}
       />
     </div>

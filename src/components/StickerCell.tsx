@@ -1,5 +1,5 @@
 import { memo, useRef, type PointerEvent as RPointerEvent } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Plus } from 'lucide-react'
 import { Flag } from './Flag'
 import { teamAccent } from '../lib/teamColors'
 import type { CollectionItem } from '../lib/types'
@@ -106,6 +106,12 @@ function StickerCellBase({ item, onSetCount, onLongPress }: Props) {
         className={`${base} ${shape} border-2 border-dashed border-missing/40 bg-surface-2`}
         {...handlers}
       >
+        <span
+          aria-hidden="true"
+          className="absolute right-1 top-1 text-fg-muted/35"
+        >
+          <Plus size={10} strokeWidth={3} />
+        </span>
         {isBadge ? (
           <Flag code={item.country_code} className="h-8 w-12 opacity-45 grayscale" />
         ) : (

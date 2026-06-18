@@ -316,7 +316,7 @@ export function CollectionScreen() {
         </div>
       )}
 
-      {!seenIntro && (
+      {!seenIntro && !firstRun && (
         <div className="mb-3 flex items-start gap-3 rounded-[12px] border border-border bg-surface px-3 py-2.5">
           <p className="flex-1 text-xs leading-relaxed text-fg-muted">
             <span className="font-semibold text-fg">Atinge</span> un slot gol ca

@@ -29,6 +29,7 @@ import {
 import { useAuth } from '../auth/AuthProvider'
 import { hideFriend, unhideFriend } from '../lib/friends'
 import { haptic } from '../lib/haptics'
+import { copyText } from '../lib/share'
 import { Flag } from '../components/Flag'
 import { Snackbar } from '../components/Snackbar'
 import { TradesPanel } from '../components/TradesPanel'
@@ -212,12 +213,14 @@ function FriendCard({
   friend,
   trade,
   loading,
+  synced,
   onPropose,
   onRemove,
 }: {
   friend: FriendProfile
   trade: { get: CollectionItem[]; give: CollectionItem[] }
   loading: boolean
+  synced: boolean
   onPropose: (
     friendId: string,
     giveItems: CollectionItem[],
@@ -261,7 +264,9 @@ function FriendCard({
           {loading ? (
             <div className="mt-1.5 h-3 w-28 animate-pulse rounded-full bg-surface-2" />
           ) : total === 0 ? (
-            <div className="mt-0.5 text-xs text-fg-muted">Niciun schimb acum</div>
+            <div className="mt-0.5 text-xs text-fg-muted">
+              {synced ? 'Niciun schimb acum' : 'Încă nu și-a încărcat albumul'}
+            </div>
           ) : (
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-bold">
               <span className="inline-flex items-center gap-1 text-turquoise-text">
@@ -314,12 +319,14 @@ function FriendCard({
             <div className="space-y-5">
               {total === 0 ? (
                 <p className="py-1 text-center text-sm text-fg-muted">
-                  Nimic de schimbat cu {friend.name} deocamdată.
+                  {synced
+                    ? `Nimic de schimbat cu ${friend.name} deocamdată.`
+                    : `${friend.name} încă nu și-a încărcat albumul. Spune-i să-și adauge abțibildurile.`}
                 </p>
               ) : (
                 <>
                   <SwapSection
-                    title={`Iei de la ${friend.name}`}
+                    title={`Primești de la ${friend.name}`}
                     Icon={ArrowDownLeft}
                     tone="turquoise"
                     items={get}
@@ -348,7 +355,7 @@ function FriendCard({
                   >
                     <ArrowLeftRight size={18} />
                     {chosenTotal
-                      ? `Propune schimb · iei ${getChosen.length} · dai ${giveChosen.length}`
+                      ? `Propune schimb · primești ${getChosen.length} · dai ${giveChosen.length}`
                       : 'Alege ce schimbi'}
                   </button>
                 </>
@@ -470,7 +477,8 @@ export function FriendsScreen() {
   const qc = useQueryClient()
   const { hash, pathname } = useLocation()
   const navigate = useNavigate()
-  const { doAdd } = useAddFriend()
+  const { doAdd, myProfile } = useAddFriend()
+  const myCode = myProfile.data?.friend_code ?? ''
   const [toast, setToast] = useState<{
     message: string
     onUndo?: () => void
@@ -573,6 +581,11 @@ export function FriendsScreen() {
   const friendIds = friends.map((f) => f.id)
   const allFriendStickers = useFriendsStickers(friendIds)
   const tradesLoading = allFriendStickers.isLoading && !allFriendStickers.data
+  const syncedIds = useMemo(() => {
+    const s = new Set<string>()
+    for (const r of allFriendStickers.data ?? []) s.add(r.user_id)
+    return s
+  }, [allFriendStickers.data])
 
   // Compute every friend's get/give from the single shared query.
   const friendTrades = useMemo(() => {
@@ -706,6 +719,25 @@ export function FriendsScreen() {
         <UserPlus size={18} /> Adaugă un prieten
       </Link>
 
+      {myCode && (
+        <button
+          type="button"
+          onClick={async () => {
+            if (await copyText(myCode)) {
+              haptic('success')
+              setToast({ message: 'Cod copiat!' })
+            }
+          }}
+          className="mx-auto -mt-2 mb-4 flex items-center gap-1.5 text-xs font-semibold text-fg-muted active:opacity-70"
+        >
+          Codul tău:{' '}
+          <span className="font-bold tracking-wider text-turquoise-text">
+            {myCode}
+          </span>{' '}
+          · Copiază
+        </button>
+      )}
+
       {trades.length > 0 && (
         <TradesPanel
           trades={trades}
@@ -738,6 +770,7 @@ export function FriendsScreen() {
               friend={f}
               trade={friendTrades.get(f.id) ?? { get: [], give: [] }}
               loading={tradesLoading}
+              synced={syncedIds.has(f.id)}
               onPropose={propose}
               onRemove={remove}
             />
