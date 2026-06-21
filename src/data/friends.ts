@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { getHidden, unhideFriend } from '../lib/friends'
-import type { UserStickerRow } from '../lib/types'
 
 export interface FriendProfile {
   id: string
@@ -65,35 +64,19 @@ export async function fetchProfileByCode(
   return toProfile(data[0] as ProfileRow)
 }
 
-/** A friend's collection rows (auto-refreshed). */
-export function useFriendStickers(friendId: string | null) {
-  return useQuery({
-    queryKey: ['friend_stickers', friendId],
-    enabled: Boolean(friendId),
-    refetchInterval: 20000,
-    refetchOnWindowFocus: true,
-    staleTime: 8000,
-    queryFn: async (): Promise<UserStickerRow[]> => {
-      const { data, error } = await supabase
-        .from('user_stickers')
-        .select('*')
-        .eq('user_id', friendId!)
-      if (error) throw error
-      return (data ?? []) as UserStickerRow[]
-    },
-  })
-}
-
 export interface FriendStickerRow {
   user_id: string
   sticker_id: number
   count: number
 }
 
+const PAGE = 1000
+
 /**
- * All friends' OWNED stickers (count ≥ 1) in a single query — used to compute
- * cross-friend demand for your spares. A friend missing a sticker simply has no
- * row here, so "wanted by" = friends not present for that sticker_id.
+ * All friends' OWNED stickers (count ≥ 1), PAGINATED. Each collector owns up to
+ * ~980 rows, so several friends easily exceed PostgREST's 1000-row cap; without
+ * paging the response is silently truncated and some friends look empty (and two
+ * users see different/asymmetric trade numbers). We loop .range() until drained.
  */
 export function useFriendsStickers(ids: string[]) {
   return useQuery({
@@ -103,13 +86,22 @@ export function useFriendsStickers(ids: string[]) {
     refetchOnWindowFocus: true,
     staleTime: 10000,
     queryFn: async (): Promise<FriendStickerRow[]> => {
-      const { data, error } = await supabase
-        .from('user_stickers')
-        .select('user_id, sticker_id, count')
-        .in('user_id', ids)
-        .gte('count', 1)
-      if (error) throw error
-      return (data ?? []) as FriendStickerRow[]
+      const all: FriendStickerRow[] = []
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from('user_stickers')
+          .select('user_id, sticker_id, count')
+          .in('user_id', ids)
+          .gte('count', 1)
+          .order('user_id', { ascending: true })
+          .order('sticker_id', { ascending: true })
+          .range(from, from + PAGE - 1)
+        if (error) throw error
+        const batch = (data ?? []) as FriendStickerRow[]
+        all.push(...batch)
+        if (batch.length < PAGE) break
+      }
+      return all
     },
   })
 }
