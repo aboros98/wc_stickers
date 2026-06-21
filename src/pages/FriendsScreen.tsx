@@ -536,8 +536,14 @@ export function FriendsScreen() {
       qc.invalidateQueries({ queryKey: ['trade_history'] })
       qc.invalidateQueries({ queryKey: ['user_stickers'] })
       qc.invalidateQueries({ queryKey: ['friends_stickers'] })
-    } catch {
-      setToast({ message: 'Nu am putut accepta schimbul.' })
+    } catch (e) {
+      const stale = (e as { message?: string })?.message?.includes('TRADE_STALE')
+      setToast({
+        message: stale
+          ? 'Albumele s-au schimbat între timp. Refuză și refă schimbul.'
+          : 'Nu am putut accepta schimbul.',
+      })
+      qc.invalidateQueries({ queryKey: ['friends_stickers'] })
     } finally {
       setTradeBusy(null)
     }
@@ -606,11 +612,14 @@ export function FriendsScreen() {
       if (!m) haveByFriend.set(r.user_id, (m = new Map()))
       m.set(r.sticker_id, r.count)
     }
+    // SYMMETRY: a pair only trades when BOTH own ≥1 sticker. Both clients evaluate
+    // the identical predicate "(I own ≥1) AND (friend owns ≥1)", so A.give-to-B
+    // always equals B.get-from-A. Gating only the friend (the old code) was
+    // one-sided: an empty viewer still computed a full set against a synced friend.
+    const iAmSynced = myItems.some((it) => it.count >= 1)
     for (const f of friends) {
       const fc = haveByFriend.get(f.id)
-      // No rows at all = album unknown / not synced yet. Don't guess they "need"
-      // everything, or we'd offer to give them all our spares (and inflate demand).
-      if (!fc) {
+      if (!fc || !iAmSynced) {
         map.set(f.id, { get: [], give: [] })
         continue
       }

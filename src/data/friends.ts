@@ -1,5 +1,9 @@
 import { useCallback, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthProvider'
 import { getHidden, unhideFriend } from '../lib/friends'
@@ -85,6 +89,9 @@ export function useFriendsStickers(ids: string[]) {
     refetchInterval: 30000,
     refetchOnWindowFocus: true,
     staleTime: 10000,
+    // Keep showing the prior batch while the key changes (friend added/removed)
+    // so cards don't flash empty during the refetch.
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<FriendStickerRow[]> => {
       const all: FriendStickerRow[] = []
       for (let from = 0; ; from += PAGE) {
@@ -125,11 +132,17 @@ export function useFriends() {
       const hidden = new Set(getHidden())
       const want = [...ids].filter((id) => id !== user!.id && !hidden.has(id))
       if (!want.length) return []
-      const { data: profs } = await supabase
-        .from('profiles')
-        .select(SELECT)
-        .in('id', want)
-      return ((profs ?? []) as ProfileRow[]).map(toProfile)
+      // Chunk the id list so a large friend list never hits the 1000-row cap.
+      const profs: ProfileRow[] = []
+      for (let i = 0; i < want.length; i += PAGE) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select(SELECT)
+          .in('id', want.slice(i, i + PAGE))
+        if (error) throw error
+        profs.push(...((data ?? []) as ProfileRow[]))
+      }
+      return profs.map(toProfile)
     },
   })
 }

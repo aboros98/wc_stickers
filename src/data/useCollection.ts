@@ -14,13 +14,23 @@ import {
 } from '../lib/collection'
 
 async function fetchCatalog(): Promise<Sticker[]> {
-  const { data, error } = await supabase
-    .from('catalog')
-    .select('*')
-    .order('sort_order', { ascending: true })
-    .limit(2000)
-  if (error) throw error
-  return (data ?? []) as Sticker[]
+  // Paginate (with a stable id tiebreaker) so a growing catalog never hits the
+  // 1000-row cap — .limit() does NOT raise PostgREST's max-rows.
+  const PAGE = 1000
+  const all: Sticker[] = []
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('catalog')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, from + PAGE - 1)
+    if (error) throw error
+    const batch = (data ?? []) as Sticker[]
+    all.push(...batch)
+    if (batch.length < PAGE) break
+  }
+  return all
 }
 
 async function fetchUserStickers(userId: string): Promise<UserStickerRow[]> {
@@ -60,6 +70,10 @@ export function useCollection() {
     queryKey: ['user_stickers', user?.id],
     queryFn: () => fetchUserStickers(user!.id),
     enabled: Boolean(user),
+    // Converge after a counterparty accepts a trade (which mutates my album
+    // server-side) even though the change happened on their device, not mine.
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
   })
 
   const items = useMemo(
